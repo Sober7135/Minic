@@ -1,11 +1,14 @@
 you
 124
 1243.
+int
+float
 for 
 if 
 else 
 while 
 return 
+=
 +
 -
 *

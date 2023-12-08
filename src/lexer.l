@@ -3,6 +3,7 @@
 %}
 
 %option noyywrap c++
+%option outfile="lexer.cc"
 digit               [0-9]
 letter              [a-zA-Z_]
 float               ({digit}+\.{digit}*)|(\.{digit}+)
@@ -14,14 +15,17 @@ whitespace          [ \t]+
 %%
 {whitespace}        {} // skip
 {newline}           {}
-{int}               { yylval = std::stoi(yytext); return TokenType::kInt; }
-{float}             { yylval = std::stof(yytext); return TokenType::kFloat; }// TODO char option 
+{int}               { yylval = std::stoi(yytext); return TokenType::kLiteralInt; }
+{float}             { yylval = std::stof(yytext); return TokenType::kLiteralFloat; }// TODO char option 
 
+"int"               { return TokenType::kInt; }
+"float"             { return TokenType::kFloat; }
 "for"               { return TokenType::kFor; }
 "if"                { return TokenType::kIf; }
 "else"              { return TokenType::kElse; } // TODO "Elseif" { return TokenType::kElse; }
 "while"             { return TokenType::kWhile; }
 "return"            { return TokenType::kReturn; }
+"="                 { return TokenType::kAssign; }
 "+"                 { return TokenType::kPlus; }
 "-"                 { return TokenType::kMinus; }
 "*"                 { return TokenType::kMultiply; }

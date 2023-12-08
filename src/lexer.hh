@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <string>
 #include <variant>
 
@@ -12,19 +11,22 @@ enum TokenType {
   kIdentifier,
 
   // Data types
-  kInt,
-  kFloat,
-  // kChar, // 'char' is optional
+  kLiteralInt,
+  kLiteralFloat,
+  // TODO 'char' is optional
 
   // Keywords
+  kInt,
+  kFloat,
   kFor,
   kIf,
   kElse,
-  // kElseIf, // 'elseif' is optional
+  // TODO 'elseif' is optional
   kWhile,
   kReturn,
 
   // Operators
+  kAssign,
   kPlus,
   kMinus, // for both Minus and unary minus
   kMultiply,
@@ -37,7 +39,7 @@ enum TokenType {
   kGreaterEqual,
   kAnd,
   kOr,
-  // kBitOr, // 'BitOr' is optional
+  // TODO '|' (BitOr) is optional
 
   // Punctuation
   kComma,
@@ -48,7 +50,7 @@ enum TokenType {
   kRightBrace,
 
   // End of File
-  kEndOfFile
+  kEndOfFile,
 };
 
 using YYLVAL = std::variant<int, float, std::string>;

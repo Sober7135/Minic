@@ -1,4 +1,6 @@
 .vscode
 
 **/a.out
-**/lex.yy.cc
+**/lexer.cc
+src/token2string.hh
+main

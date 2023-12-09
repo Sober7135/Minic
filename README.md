@@ -61,3 +61,4 @@ G[program]:
 
 ### float
 not support e/E
+not support `int x = 8;`

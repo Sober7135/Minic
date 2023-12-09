@@ -17,5 +17,5 @@ auto main(int argc, char *argv[]) -> int {
   do {
     token = lex->yylex();
     std::cout << std::format("{}\n", TokenType2String(token));
-  } while (token != TokenType::kEndOfFile);
+  } while (token != TokenType::EndOfFile);
 }

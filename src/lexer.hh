@@ -7,51 +7,51 @@
 // #undef YY_DECL
 // #define YY_DECL TokenType yyFlexLexer::yylex()
 
+using YYLVAL = std::variant<int, float, std::string>;
+inline YYLVAL yylval;
+
 enum TokenType {
-  kIdentifier,
+  Identifier,
 
   // Data types
-  kLiteralInt,
-  kLiteralFloat,
+  LiteralInt,
+  LiteralFloat,
   // TODO 'char' is optional
 
   // Keywords
-  kInt,
-  kFloat,
-  kFor,
-  kIf,
-  kElse,
+  Int,
+  Float,
+  For,
+  If,
+  Else,
   // TODO 'elseif' is optional
-  kWhile,
-  kReturn,
+  While,
+  Return,
 
   // Operators
-  kAssign,
-  kPlus,
-  kMinus, // for both Minus and unary minus
-  kMultiply,
-  kDivide,
-  kLess,
-  kLessEqual,
-  kEqual,
-  kNotEqual,
-  kGreater,
-  kGreaterEqual,
-  kAnd,
-  kOr,
+  Assign,
+  Plus,
+  Minus,
+  Multiply,
+  Divide,
+  Less,
+  LessEqual,
+  Equal,
+  NotEqual,
+  Greater,
+  GreaterEqual,
+  And,
+  Or,
   // TODO '|' (BitOr) is optional
 
   // Punctuation
-  kComma,
-  kSemicolon,
-  kLeftParen,
-  kRightParen,
-  kLeftBrace,
-  kRightBrace,
+  Comma,
+  Semicolon,
+  LeftParen,
+  RightParen,
+  LeftBrace,
+  RightBrace,
 
   // End of File
-  kEndOfFile,
+  EndOfFile,
 };
-
-using YYLVAL = std::variant<int, float, std::string>;
-inline YYLVAL yylval;

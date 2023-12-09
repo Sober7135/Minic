@@ -17,7 +17,7 @@ template_case_return =  '''  case TokenType::{}:
     return "<{}>";
 '''
 
-pattern = r"(k[^,]*),"
+pattern = r"\s*([^,]*),\n"
 case_return = ''
 
 with open("src/lexer.hh") as fr: 
@@ -25,7 +25,7 @@ with open("src/lexer.hh") as fr:
     match = re.search(pattern, line)
     if match:
       token_type = match.group(1)
-      case_return += template_case_return.format(token_type, token_type[1:])
+      case_return += template_case_return.format(token_type, token_type)
   
   with open("src/token2string.hh", '+w') as fw:
     fw.write(template.format(case_return)) 

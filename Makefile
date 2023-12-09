@@ -1,6 +1,6 @@
 CXX = clang++
 CXXFLAGS = -std=c++2b -Wall -Werror -Wextra
-LDFLAGS = -L /usr/lib
+# LDFLAGS = -L /usr/lib
 
 SOURCE = $(wildcard src/*.cc)
 CLEAN	= src/token2string.hh src/lexer.cc main

@@ -4,3 +4,5 @@
 **/lexer.cc
 src/token2string.hh
 main
+
+*.cc

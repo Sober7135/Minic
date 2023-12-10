@@ -1,6 +1,7 @@
 import re
 
-template = '''#include "lexer.hh"
+template = '''#pragma once
+#include "tokenType.hh"
 
 #include <string>
 
@@ -14,18 +15,19 @@ constexpr auto TokenType2String(int token) -> const std::string {{
 '''
 
 template_case_return =  '''  case TokenType::{}:
-    return "<{}>";
+    return "{}";
 '''
 
 pattern = r"\s*([^,]*),\n"
 case_return = ''
 
-with open("src/lexer.hh") as fr: 
+with open("src/tokenType.hh") as fr: 
   for line in fr:
     match = re.search(pattern, line)
     if match:
       token_type = match.group(1)
-      case_return += template_case_return.format(token_type, token_type)
+      if token_type.find(' ') == -1:
+        case_return += template_case_return.format(token_type, token_type)
   
   with open("src/token2string.hh", '+w') as fw:
     fw.write(template.format(case_return)) 

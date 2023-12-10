@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lexer.hh"
+#include "tokenType.hh"
 #include <stdexcept>
 
 enum class DataType {

@@ -1,5 +1,5 @@
 #include "lexer.hh"
-#include "token2string.hh"
+#include "tokenType.hh"
 
 #include <FlexLexer.h>
 #include <format>
@@ -16,6 +16,6 @@ auto main(int argc, char *argv[]) -> int {
   int token{};
   do {
     token = lex->yylex();
-    std::cout << std::format("{}\n", TokenType2String(token));
+    std::cout << std::format("{}\n", Token2String(yylval));
   } while (token != TokenType::EndOfFile);
 }

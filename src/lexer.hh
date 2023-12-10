@@ -1,57 +1,39 @@
 #pragma once
 
+#include "token2string.hh"
+#include "tokenType.hh"
+
+#include <format>
+#include <optional>
 #include <string>
+#include <utility>
 #include <variant>
 
-// https://stackoverflow.com/questions/3796598/returning-non-ints-from-yylex
-// #undef YY_DECL
-// #define YY_DECL TokenType yyFlexLexer::yylex()
+struct Token {
+  TokenType Type;
+  std::optional<std::variant<int, float, std::string>> Val;
 
-using YYLVAL = std::variant<int, float, std::string>;
-inline YYLVAL yylval;
-
-enum TokenType {
-  Identifier,
-
-  // Data types
-  LiteralInt,
-  LiteralFloat,
-  // TODO 'char' is optional
-
-  // Keywords
-  Int,
-  Float,
-  For,
-  If,
-  Else,
-  // TODO 'elseif' is optional
-  While,
-  Return,
-
-  // Operators
-  Assign,
-  Plus,
-  Minus,
-  Multiply,
-  Divide,
-  Less,
-  LessEqual,
-  Equal,
-  NotEqual,
-  Greater,
-  GreaterEqual,
-  And,
-  Or,
-  // TODO '|' (BitOr) is optional
-
-  // Punctuation
-  Comma,
-  Semicolon,
-  LeftParen,
-  RightParen,
-  LeftBrace,
-  RightBrace,
-
-  // End of File
-  EndOfFile,
+  Token() : Type(), Val() {}
+  explicit Token(
+      TokenType Type,
+      std::optional<std::variant<int, float, std::string>> Val = std::nullopt)
+      : Type(Type), Val(std::move(Val)) {}
 };
+
+inline Token yylval{};
+
+inline auto Token2String(const Token &T) -> std::string {
+  auto Val = [](const Token &T) {
+    if (T.Type == TokenType::LiteralInt) {
+      return std::format("{}", std::get<0>(T.Val.value()));
+    } else if (T.Type == TokenType::LiteralFloat) {
+      return std::format("{}", std::get<float>(T.Val.value()));
+    } else if (T.Type == TokenType::Identifier) {
+      return std::get<std::string>(T.Val.value());
+    } else {
+      return std::string{"None"};
+    }
+  }(T);
+
+  return std::format("({}, {})", TokenType2String(T.Type), Val);
+}

@@ -33,6 +33,8 @@ class ReturnStmt;
 
 class CompoundStmt;
 
+class Declarator;
+
 using ParmVarList = std::vector<std::unique_ptr<ParmVarDecl>>;
 using TranslationUnit = std::vector<std::unique_ptr<Declaration>>;
 
@@ -50,19 +52,41 @@ public:
 ///   ::=
 class Expr : public ASTNode {};
 
-/// Declaration
-///   ::= VarDecl
-///   ::= ParamVarDecl
-///   ::= FunctionDecl
-class Declaration : public ASTNode {
-protected:
+class Declarator : public ASTNode {
   std::string Name;
 
 public:
-  [[nodiscard]] auto getName() const noexcept -> const std::string & {
-    return Name;
+  explicit Declarator(std::string Name) : Name(std::move(Name)) {}
+};
+
+class ArrayDeclarator : public Declarator {
+  std::vector<int> Dimension; // int a[5][6]; the Dimension is [5, 6]
+  int len;
+
+public:
+  ArrayDeclarator(std::string Name, std::vector<int> Dimension)
+      : Declarator(std::move(Name)), Dimension(std::move(Dimension)) {
+    len = Dimension.size();
   }
-  explicit Declaration(std::string Name) : Name(std::move(Name)) {}
+  auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+};
+
+class SimpleDeclarator : public Declarator {
+public:
+  explicit SimpleDeclarator(std::string Name) : Declarator(std::move(Name)) {}
+  auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+};
+
+/// Declaration
+///   ::= VarDecl
+///   ::= ParamVarDecl
+class Declaration : public ASTNode {
+  DataType Type;
+  std::unique_ptr<Declarator> TheDeclarator;
+
+public:
+  explicit Declaration(DataType Type, std::unique_ptr<Declarator> TheDeclarator)
+      : Type(Type), TheDeclarator(std::move(TheDeclarator)) {}
 };
 
 /// VariableExpr
@@ -172,15 +196,15 @@ public:
 };
 
 /// Variable Declaration
-///   ::= DataType identifier
-///   ::= DataType identifier '=' Expr
+///   ::= DataType Declarator
+///   ::= DataType Declarator '=' Expr
 class VarDecl : public Declaration {
-  DataType Type;
   std::unique_ptr<Expr> Val; // optional
 
 public:
-  VarDecl(DataType Type, std::string Name, std::unique_ptr<Expr> Val = nullptr)
-      : Declaration(std::move(Name)), Type(Type), Val(std::move(Val)) {}
+  VarDecl(DataType Type, std::unique_ptr<Declarator> TheDeclarator,
+          std::unique_ptr<Expr> Val = nullptr)
+      : Declaration(Type, std::move(TheDeclarator)), Val(std::move(Val)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
 };
 
@@ -234,26 +258,27 @@ public:
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
 };
 
-/// Parameter Variable Declaration
-/// Part of VarDecl, not support default parameter value
-class ParmVarDecl : public VarDecl {
+/// ParmVarDecl
+///     ::= DataType Declarator
+class ParmVarDecl : public Declaration {
 public:
-  ParmVarDecl(DataType Type, std::string Name)
-      : VarDecl(Type, std::move(Name)){};
+  ParmVarDecl(DataType Type, std::unique_ptr<Declarator> TheDeclarator)
+      : Declaration(Type, std::move(TheDeclarator)){};
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
 };
 
 /// Function Declaration
 ///   ::= ReturnType Name '(' VarList ')' '{' CompoundStmt '}'
-class FunctionDecl : public Declaration {
-  DataType RetType;
+class FunctionDecl : public ASTNode {
+  DataType ReturnType;
+  std::string Name;
   ParmVarList VarList;
   CompoundStmt Body;
 
 public:
-  FunctionDecl(DataType RetType, std::string Name, ParmVarList VarList,
+  FunctionDecl(DataType ReturnType, std::string Name, ParmVarList VarList,
                CompoundStmt Body)
-      : Declaration(std::move(Name)), RetType(RetType),
+      : ReturnType(ReturnType), Name(std::move(Name)),
         VarList(std::move(VarList)), Body(std::move(Body)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
 };

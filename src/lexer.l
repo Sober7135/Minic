@@ -21,6 +21,7 @@ whitespace          [ \t]+
 
 "int"               { yylval = Token(TokenType::Int); return TokenType::Int; }
 "float"             { yylval = Token(TokenType::Float); return TokenType::Float; }
+"void"              { yylval = Token(TokenType::Void); return TokenType::Void; }
 "for"               { yylval = Token(TokenType::For); return TokenType::For; }
 "if"                { yylval = Token(TokenType::If); return TokenType::If; }
 "else"              { yylval = Token(TokenType::Else); return TokenType::Else; } // TODO "Elseif" { return TokenType::kElse; }

@@ -11,6 +11,7 @@ enum TokenType {
   // Keywords
   Int,
   Float,
+  Void,
   For,
   If,
   Else,

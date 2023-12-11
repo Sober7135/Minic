@@ -3,6 +3,7 @@ you
 1243.
 int
 float
+void
 for 
 if 
 else 

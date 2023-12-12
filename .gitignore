@@ -5,4 +5,7 @@
 src/token2string.hh
 main
 
-*.cc
+/*.cc
+**/.antlr
+.cache
+/build

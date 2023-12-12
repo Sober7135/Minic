@@ -2,7 +2,7 @@ CXX = clang++
 CXXFLAGS = -std=c++2b -Wall -Wextra
 # LDFLAGS = -L /usr/lib
 
-SOURCE = $(wildcard src/*.cc)
+SOURCE = src/main.cc src/flex.cc
 CLEAN	= src/token2string.hh src/flex.cc main
 
 gen: scripts/generate.py src/lexer.l src/lexer.hh

@@ -21,6 +21,7 @@ whitespace          [ \t]+
 
 "int"               { yylval = Token(TokenType::Int); return TokenType::Int; }
 "float"             { yylval = Token(TokenType::Float); return TokenType::Float; }
+"char"              { yylval = Token(TokenType::Char); return TokenType::Char; }
 "void"              { yylval = Token(TokenType::Void); return TokenType::Void; }
 "for"               { yylval = Token(TokenType::For); return TokenType::For; }
 "if"                { yylval = Token(TokenType::If); return TokenType::If; }
@@ -41,12 +42,17 @@ whitespace          [ \t]+
 "&&"                { yylval = Token(TokenType::And); return TokenType::And; }
 "||"                { yylval = Token(TokenType::Or); return TokenType::Or; } 
 
+"."                 { yylval = Token(TokenType::Period); return TokenType::Period; }
 ","                 { yylval = Token(TokenType::Comma); return TokenType::Comma; }
 ";"                 { yylval = Token(TokenType::Semicolon); return TokenType::Semicolon; }
 "("                 { yylval = Token(TokenType::LeftParen); return TokenType::LeftParen; }
 ")"                 { yylval = Token(TokenType::RightParen); return TokenType::RightParen; }
 "{"                 { yylval = Token(TokenType::LeftBrace); return TokenType::LeftBrace; }
 "}"                 { yylval = Token(TokenType::RightBrace); return TokenType::RightBrace; }
+"["                 { yylval = Token(TokenType::LeftSquareBrace); return TokenType::LeftSquareBrace; }
+"]"                 { yylval = Token(TokenType::RightSquareBrace); return TokenType::RightSquareBrace; }
+"'"                 { yylval = Token(TokenType::SingleQuote); return TokenType::SingleQuote; }
+"\""                { yylval = Token(TokenType::DoubleQuote); return TokenType::DoubleQuote; }
 
 <<EOF>>             { yylval = Token(TokenType::EndOfFile); return TokenType::EndOfFile; }
 

@@ -6,11 +6,13 @@ enum TokenType {
   // Data types
   LiteralInt,
   LiteralFloat,
+  LiteralChar,
   // TODO 'char' is optional
 
   // Keywords
   Int,
   Float,
+  Char,
   Void,
   For,
   If,
@@ -37,12 +39,17 @@ enum TokenType {
   // TODO '%'
 
   // Punctuation
+  Period,
   Comma,
   Semicolon,
   LeftParen,
   RightParen,
   LeftBrace,
   RightBrace,
+  LeftSquareBrace,
+  RightSquareBrace,
+  SingleQuote,
+  DoubleQuote,
 
   // End of File
   EndOfFile,

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "TokenType.hh"
 #include "Type.hh"
 #include "Visitor.hh"
 
@@ -24,6 +25,7 @@ class BinayExpr;
 class LiteralExpr;
 class LiteralIntegerExpr;
 class LiteralFloatExpr;
+class LiteralCharExpr;
 
 class Statement;
 class ExprStmt;
@@ -43,7 +45,7 @@ class ASTNode {
 public:
   virtual ~ASTNode() = default;
   virtual auto accept(ASTVisitor &) -> void = 0;
-  virtual explicit operator std::string() { return "HELLO"; };
+  virtual explicit operator std::string() = 0;
 };
 
 /// Expression.
@@ -61,13 +63,11 @@ class Declarator : public ASTNode {
 
 public:
   explicit Declarator(std::string Name) : Name(std::move(Name)) {}
-
   Declarator(std::string Name, std::vector<int> &&Dimension)
       : Name(std::move(Name)), Dimension(Dimension), _IsArray(true) {}
-
   [[nodiscard]] auto IsArray() const -> bool { return _IsArray; }
-
   auto accept(ASTVisitor &V) -> void override { V.visit(this); }
+  explicit operator std::string() override { return std::format("Declarator"); }
 };
 
 class Initializer : ASTNode {
@@ -82,10 +82,11 @@ public:
       : TheExpr(std::move(TheExpr)), Children(std::move(Children)) {
     _IsLeaf = Children.empty();
   }
-
   [[nodiscard]] auto IsLeaf() const -> bool { return _IsLeaf; }
-
   auto accept(ASTVisitor &V) -> void override { V.visit(this); }
+  explicit operator std::string() override {
+    return std::format("Initializer");
+  }
 };
 
 /// Declaration
@@ -112,6 +113,8 @@ public:
       : Declaration(Type), TheDeclarator(std::move(TheDeclarator)),
         TheInitializer(std::move(TheInitializer)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+
+  explicit operator std::string() override { return std::format("VarDecl"); }
 };
 
 /// VariableExpr
@@ -122,6 +125,9 @@ class VariableExpr : public Expr {
 public:
   explicit VariableExpr(std::string Name) : Name(std::move(Name)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  explicit operator std::string() override {
+    return std::format("VariableExpr");
+  }
 };
 
 /// CallExpr
@@ -137,6 +143,7 @@ public:
   CallExpr(std::string Callee, std::vector<std::unique_ptr<Expr>> Args)
       : Callee(std::move(Callee)), Args(std::move(Args)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  explicit operator std::string() override { return std::format("CallExpr"); }
 };
 
 /// BinayExpr
@@ -151,6 +158,7 @@ public:
       : TheBinaryOperator(TheBinaryOperator), LHS(std::move(LHS)),
         RHS(std::move(RHS)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  explicit operator std::string() override { return std::format("BinayExpr"); }
 };
 
 /// UnaryExpr
@@ -163,6 +171,7 @@ public:
   UnaryExpr(UnaryOperator UnaryOperator, std::unique_ptr<Expr> Expression)
       : TheUnaryOperator(UnaryOperator), TheExpr(std::move(Expression)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  explicit operator std::string() override { return std::format("UnaryExpr"); }
 };
 
 /// Literal Expression
@@ -178,6 +187,9 @@ class LiteralIntegerExpr : public LiteralExpr {
 public:
   explicit LiteralIntegerExpr(int Val) : Val(Val) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  explicit operator std::string() override {
+    return std::format("LiteralIntegerExpr");
+  }
 };
 
 /// Literal Float Expression.
@@ -189,6 +201,9 @@ class LiteralFloatExpr : public LiteralExpr {
 public:
   explicit LiteralFloatExpr(float Val) : Val(Val) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  explicit operator std::string() override {
+    return std::format("LiteralFloatExpr");
+  }
 };
 
 class LiteralCharExpr : public LiteralExpr {
@@ -197,6 +212,9 @@ class LiteralCharExpr : public LiteralExpr {
 public:
   explicit LiteralCharExpr(char Char) : Char(Char) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  explicit operator std::string() override {
+    return std::format("LiteralCharExpr");
+  }
 };
 
 /// Statement
@@ -215,7 +233,7 @@ public:
   explicit CompoundStmt(std::vector<std::unique_ptr<Statement>> Statements)
       : Statements(std::move(Statements)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
-  // explicit operator std::string() override { return "CompoudStmt"; }
+  explicit operator std::string() override { return "CompoudStmt"; }
 };
 
 /// ExprStmt
@@ -226,6 +244,7 @@ class ExprStmt : public Statement {
 public:
   explicit ExprStmt(std::unique_ptr<Expr> Expr) : TheExpr(std::move(Expr)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  explicit operator std::string() override { return std::format("ExprStmt"); }
 };
 
 /// If Statement else is optional.
@@ -242,6 +261,7 @@ public:
       : Cond(std::move(Cond)), IfBody(std::move(IfBody)),
         ElseBody(std::move(ElseBody)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  explicit operator std::string() override { return std::format("IfStmt"); }
 };
 
 /// While Statement.
@@ -254,6 +274,7 @@ public:
   WhileStmt(std::unique_ptr<Expr> Cond, std::unique_ptr<CompoundStmt> Body)
       : Cond(std::move(Cond)), Body(std::move(Body)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  explicit operator std::string() override { return std::format("WhileStmt"); }
 };
 
 /// Return Statement
@@ -265,16 +286,21 @@ public:
   explicit ReturnStmt(std::unique_ptr<Expr> Expression)
       : Expression(std::move(Expression)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  explicit operator std::string() override { return std::format("ReturnStmt"); }
 };
 
 class BreakStmt : public Statement {
 public:
   auto accept(ASTVisitor &V) -> void override { V.visit(this); }
+  explicit operator std::string() override { return std::format("BreakStmt"); }
 };
 
 class ContinueStmt : public Statement {
 public:
   auto accept(ASTVisitor &V) -> void override { V.visit(this); }
+  explicit operator std::string() override {
+    return std::format("ContinueStmt");
+  }
 };
 
 /// ParmVarDecl
@@ -286,6 +312,9 @@ public:
   ParmVarDecl(DataType Type, std::unique_ptr<Declarator> TheDeclarator)
       : Declaration(Type), TheDeclarator(std::move(TheDeclarator)){};
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  explicit operator std::string() override {
+    return std::format("ParmVarDecl");
+  }
 };
 
 /// Function Definition

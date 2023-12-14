@@ -7,6 +7,7 @@
 #include <any>
 #include <cassert>
 #include <cstddef>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -35,6 +36,7 @@ auto ASTBuilder::Build() -> void {
 }
 
 /// VisitedVarDeclList
+/// FIXME 区分全局与CompoundStmt
 auto ASTBuilder::visitVarDecl(MinicParser::VarDeclContext *ctx) -> std::any {
   // DataType Declarator Initializer
   std::vector<std::unique_ptr<VarDecl>> VarDeclList;
@@ -144,12 +146,15 @@ auto ASTBuilder::visitLiteral(MinicParser::LiteralContext *ctx) -> std::any {
   if (ctx->LiteralInt()) {
     VisitedExpr = std::make_unique<LiteralIntegerExpr>(
         std::stoi(ctx->LiteralInt()->getText()));
+    return nullptr;
   } else if (ctx->LiteralFloat()) {
     VisitedExpr = std::make_unique<LiteralFloatExpr>(
         std::stof(ctx->LiteralFloat()->getText()));
+    return nullptr;
   } else {
     VisitedExpr = std::make_unique<LiteralCharExpr>(
         (char)(ctx->LiteralFloat()->getText()[0]));
+    return nullptr;
   }
   assert(0 && "Unknown Literal Type");
 }
@@ -326,7 +331,7 @@ auto ASTBuilder::visitEquality(MinicParser::EqualityContext *ctx) -> std::any {
   visitComparison(TheComparisonCtx);
   std::unique_ptr<Expr> LHS = std::move(VisitedExpr);
 
-  while (i <= size) {
+  while (i < size) {
     // Get binary operator
     auto StringBinaryOperator =
         dynamic_cast<antlr4::tree::TerminalNode *>(ctx->children[i++])
@@ -362,7 +367,7 @@ auto ASTBuilder::visitComparison(MinicParser::ComparisonContext *ctx)
   visitTerm(TheTermCtx);
   std::unique_ptr<Expr> LHS = std::move(VisitedExpr);
 
-  while (i <= size) {
+  while (i < size) {
     // Get binary operator
     auto StringBinaryOperator =
         dynamic_cast<antlr4::tree::TerminalNode *>(ctx->children[i++])
@@ -392,7 +397,7 @@ auto ASTBuilder::visitTerm(MinicParser::TermContext *ctx) -> std::any {
   visitFactor(TheFactorCtx);
   std::unique_ptr<Expr> LHS = std::move(VisitedExpr);
 
-  while (i <= size) {
+  while (i < size) {
     // Get binary operator
     auto StringBinaryOperator =
         dynamic_cast<antlr4::tree::TerminalNode *>(ctx->children[i++])
@@ -426,7 +431,7 @@ auto ASTBuilder::visitFactor(MinicParser::FactorContext *ctx) -> std::any {
   visitUnary(TheUnaryCtx);
   std::unique_ptr<Expr> LHS = std::move(VisitedExpr);
 
-  while (i <= size) {
+  while (i < size) {
     // Get binary operator
     auto StringBinaryOperator =
         dynamic_cast<antlr4::tree::TerminalNode *>(ctx->children[i++])
@@ -449,7 +454,7 @@ auto ASTBuilder::visitFactor(MinicParser::FactorContext *ctx) -> std::any {
 
 /// VisitedExpr
 auto ASTBuilder::visitUnary(MinicParser::UnaryContext *ctx) -> std::any {
-  if (!ctx->unary()) {
+  if (ctx->unary()) {
     // (Plus | Minus) unary
     auto Operator =
         dynamic_cast<antlr4::tree::TerminalNode *>(ctx->children[0])->getText();

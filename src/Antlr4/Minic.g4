@@ -13,6 +13,10 @@ declaration
     | functionDecl
 	  ;
 
+varDeclStmt 
+    : varDecl Semicolon
+    ;
+
 varDecl
     : dataType initDeclaratorList
 	  ;
@@ -32,15 +36,14 @@ initDeclarator
 	  ;
 
 declarator
-    : Identifier 
-    | declarator LeftSquareBrace LiteralInt RightSquareBrace // declaring array must speicify size...  
+    : Identifier (LeftSquareBrace LiteralInt RightSquareBrace)* // declaring array must speicify size...  
 	  ;
 
 // int a[123]; array size must be explicit and only can be constant.
 
 initializer
     : expr
-    | LeftBrace expr (Comma expr)* RightBrace // array initializer
+    | LeftBrace initializer (Comma initializer)* RightBrace // array initializer
 	  ;
 
 literal
@@ -68,7 +71,7 @@ compoundStmt
 statement
     : ifStmt
     | whileStmt
-    | forStmt
+    // | forStmt
     | exprStmt
     | varDeclStmt
     | returnStmt
@@ -76,27 +79,20 @@ statement
     ;
 
 ifStmt
-    : If LeftParen cond RightParen compoundStmt (Else compoundStmt)?
+    : If LeftParen expr RightParen compoundStmt (Else compoundStmt)?
     ;
     
-cond
-    : expr
-    ;
-
 whileStmt
-    : While LeftParen cond RightParen compoundStmt
+    : While LeftParen expr RightParen compoundStmt
     ;
 
-forStmt
-    : For LeftParen expr Semicolon expr Semicolon expr RightParen compoundStmt
-    ;
+// removing forStmt supporting, because if we support for, we must deal with left value and assignment expression
+// forStmt
+//     : For LeftParen expr Semicolon expr Semicolon expr RightParen compoundStmt
+//     ;
 
 exprStmt
     : expr Semicolon
-    ;
-
-varDeclStmt 
-    : varDecl Semicolon
     ;
 
 returnStmt
@@ -114,6 +110,10 @@ continueStmt
 expr
     : equality
     ;
+
+// assignment
+//     : equality (Assign equality)*
+//     ;
 
 equality
     : comparison ((NotEqual | Equal) comparison)*
@@ -161,16 +161,16 @@ parenExpr
 
 // Token
 Int
-    : 'int'
+    : 'int' 
 	  ;
 Float
-    : 'float'
+    : 'float' 
 	  ;
 Char
-    : 'char'
+    : 'char' 
 	  ;
 Void
-    : 'void'
+    : 'void' 
     ;
 LiteralInt
     : DigitSequence
@@ -183,100 +183,100 @@ LiteralChar
     : SingleQuote Ascii SingleQuote
 	  ;
 If
-    : 'if'
+    : 'if' 
 	  ;
 Else
-    : 'else'
+    : 'else' 
 	  ;
 ElseIf
-    : 'elseif'
+    : 'elseif' 
 	  ;
 For
-    : 'for'
+    : 'for' 
 	  ;
 While
-    : 'while'
+    : 'while' 
 	  ;
 Return
-    : 'return'
+    : 'return' 
     ;
 Break
-    : 'break'
+    : 'break' 
 	  ;
 Continue
-    : 'continue'
+    : 'continue' 
 	  ;
 Assign
-    : '='
+    : '=' 
     ;
 Plus 
-    : '+'
+    : '+' 
     ;
 Minus
-    : '-'
+    : '-' 
     ;
 Multiply
-    : '*'
+    : '*' 
     ;
 Divide
-    : '/'
+    : '/' 
     ;
 Less
-    : '<'
+    : '<' 
     ;
 LessEqual
-    : '<='
+    : '<=' 
     ;
 Equal
-    : '=='
+    : '==' 
     ;
 NotEqual
-    : '!='
+    : '!=' 
     ;
 Greater
-    : '>'
+    : '>' 
     ;
 GreaterEqual
-    : '>='
+    : '>=' 
     ;
 And 
-    : '&&'
+    : '&&' 
     ;
 Or 
-    : '||'
+    : '||' 
     ;
 Period
-    : '.'
+    : '.' 
     ;
 Comma
-    : ','
+    : ',' 
     ;
 Semicolon
-    : ';'
+    : ';' 
     ;
 LeftParen
-    : '('
+    : '(' 
     ;
 RightParen
-    : ')'
+    : ')' 
     ;
 LeftBrace
-    : '{'
+    : '{' 
     ;
 RightBrace
-    : '}'
+    : '}' 
     ;
 LeftSquareBrace
-    : '['
+    : '[' 
     ;
 RightSquareBrace
-    : ']'
+    : ']' 
     ;
 SingleQuote
-    : '\''
+    : '\'' 
     ;
 DoubleQuote
-    : '"'
+    : '"' 
     ;
 Identifier
     : NonDigit+ (NonDigit | Digit)*
@@ -302,3 +302,5 @@ fragment DigitSequence
 fragment Ascii
     : [\u0000-\u007F]
 	  ;
+
+

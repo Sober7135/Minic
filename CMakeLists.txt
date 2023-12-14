@@ -1,8 +1,12 @@
 # minimum required CMAKE version
-CMAKE_MINIMUM_REQUIRED(VERSION 3.7 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.28 FATAL_ERROR)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE DEBUG) 
+endif(NOT CMAKE_BUILD_TYPE)
+ 
 # compiler must be 17
 set(CMAKE_CXX_STANDARD 23)
 
@@ -31,7 +35,8 @@ include_directories(${ANTLR4_INCLUDE_DIRS})
 
 # set variable pointing to the antlr tool that supports C++
 # this is not required if the jar file can be found under PATH environment
-set(ANTLR_EXECUTABLE ${CMAKE_SOURCE_DIR}/thirdparty/antlr/antlr-4.9.3-complete.jar)
+# set(ANTLR_EXECUTABLE ${CMAKE_SOURCE_DIR}/thirdparty/antlr/antlr-4.9.3-complete.jar)
+set(ANTLR_EXECUTABLE /usr/share/java/antlr-complete.jar)
 # add macros to generate ANTLR Cpp code from grammar
 find_package(ANTLR REQUIRED)
 
@@ -44,5 +49,6 @@ antlr_target(MinicGrammar ${CMAKE_SOURCE_DIR}/src/Antlr4/Minic.g4 LEXER PARSER V
 include_directories(${ANTLR_MinicGrammar_OUTPUT_DIR})
 
 # add generated grammar to demo binary target
-add_executable(demo src/antlr.cc ${ANTLR_MinicGrammar_CXX_OUTPUTS})
-target_link_libraries(demo antlr4_static)
+add_executable(minic src/main.cc src/ASTBuilder.cc ${ANTLR_MinicGrammar_CXX_OUTPUTS})
+# add_executable(minic src/test.cc ${ANTLR_MinicGrammar_CXX_OUTPUTS})
+target_link_libraries(minic antlr4_static)

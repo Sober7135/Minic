@@ -1,8 +1,9 @@
 #pragma once
 
-#include "type.hh"
-#include "visitor.hh"
+#include "Type.hh"
+#include "Visitor.hh"
 
+#include <format>
 #include <memory>
 #include <string>
 #include <utility>
@@ -26,22 +27,23 @@ class LiteralFloatExpr;
 
 class Statement;
 class ExprStmt;
-class DeclStmt;
 class IfStmt;
 class WhileStmt;
 class ReturnStmt;
-
+class BreakStmt;
+class ContinueStmt;
 class CompoundStmt;
 
 class Declarator;
 
 using ParmVarList = std::vector<std::unique_ptr<ParmVarDecl>>;
-using TranslationUnit = std::vector<std::unique_ptr<Declaration>>;
+using Program = std::vector<std::unique_ptr<Declaration>>;
 
 class ASTNode {
 public:
   virtual ~ASTNode() = default;
   virtual auto accept(ASTVisitor &) -> void = 0;
+  virtual explicit operator std::string() { return "HELLO"; };
 };
 
 /// Expression.
@@ -54,39 +56,62 @@ class Expr : public ASTNode {};
 
 class Declarator : public ASTNode {
   std::string Name;
+  std::vector<int> Dimension{}; // when is not array, it should be empty
+  bool _IsArray = false;
 
 public:
   explicit Declarator(std::string Name) : Name(std::move(Name)) {}
+
+  Declarator(std::string Name, std::vector<int> &&Dimension)
+      : Name(std::move(Name)), Dimension(Dimension), _IsArray(true) {}
+
+  [[nodiscard]] auto IsArray() const -> bool { return _IsArray; }
+
+  auto accept(ASTVisitor &V) -> void override { V.visit(this); }
 };
 
-class ArrayDeclarator : public Declarator {
-  std::vector<int> Dimension; // int a[5][6]; the Dimension is [5, 6]
-  int len;
+class Initializer : ASTNode {
+  std::unique_ptr<Expr> TheExpr; // nullptr if is not leaf node
+  std::vector<std::unique_ptr<Initializer>> Children;
+  bool _IsLeaf;
 
 public:
-  ArrayDeclarator(std::string Name, std::vector<int> Dimension)
-      : Declarator(std::move(Name)), Dimension(std::move(Dimension)) {
-    len = Dimension.size();
+  Initializer(std::unique_ptr<Expr> TheExpr,
+              std::vector<std::unique_ptr<Initializer>> &&Children =
+                  std::vector<std::unique_ptr<Initializer>>{})
+      : TheExpr(std::move(TheExpr)), Children(std::move(Children)) {
+    _IsLeaf = Children.empty();
   }
-  auto accept(ASTVisitor &v) -> void override { v.visit(this); }
-};
 
-class SimpleDeclarator : public Declarator {
-public:
-  explicit SimpleDeclarator(std::string Name) : Declarator(std::move(Name)) {}
-  auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  [[nodiscard]] auto IsLeaf() const -> bool { return _IsLeaf; }
+
+  auto accept(ASTVisitor &V) -> void override { V.visit(this); }
 };
 
 /// Declaration
 ///   ::= VarDecl
 ///   ::= ParamVarDecl
+///   ::= FunctionDecl
 class Declaration : public ASTNode {
   DataType Type;
-  std::unique_ptr<Declarator> TheDeclarator;
 
 public:
-  explicit Declaration(DataType Type, std::unique_ptr<Declarator> TheDeclarator)
-      : Type(Type), TheDeclarator(std::move(TheDeclarator)) {}
+  explicit Declaration(DataType Type) : Type(Type) {}
+};
+
+/// Variable Declaration
+///   ::= DataType Declarator
+///   ::= DataType Declarator '=' Expr
+class VarDecl : public Declaration {
+  std::unique_ptr<Declarator> TheDeclarator;
+  std::unique_ptr<Initializer> TheInitializer; // optional
+
+public:
+  VarDecl(DataType Type, std::unique_ptr<Declarator> TheDeclarator,
+          std::unique_ptr<Initializer> TheInitializer = nullptr)
+      : Declaration(Type), TheDeclarator(std::move(TheDeclarator)),
+        TheInitializer(std::move(TheInitializer)) {}
+  auto accept(ASTVisitor &v) -> void override { v.visit(this); }
 };
 
 /// VariableExpr
@@ -117,13 +142,13 @@ public:
 /// BinayExpr
 ///   ::= Expr BinayOperator Expr
 class BinayExpr : public Expr {
-  std::string BinaryOperator;
+  BinayOperator TheBinaryOperator;
   std::unique_ptr<Expr> LHS, RHS;
 
 public:
-  BinayExpr(std::string BinOp, std::unique_ptr<Expr> LHS,
+  BinayExpr(BinayOperator TheBinaryOperator, std::unique_ptr<Expr> LHS,
             std::unique_ptr<Expr> RHS)
-      : BinaryOperator(std::move(BinOp)), LHS(std::move(LHS)),
+      : TheBinaryOperator(TheBinaryOperator), LHS(std::move(LHS)),
         RHS(std::move(RHS)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
 };
@@ -131,13 +156,12 @@ public:
 /// UnaryExpr
 ///   ::= UnaryOperator Expr
 class UnaryExpr : public Expr {
-  std::string UnaryOperator;
-  std::unique_ptr<Expr> Expression;
+  UnaryOperator TheUnaryOperator;
+  std::unique_ptr<Expr> TheExpr;
 
 public:
-  UnaryExpr(std::string UnaryOperator, std::unique_ptr<Expr> Expression)
-      : UnaryOperator(std::move(UnaryOperator)),
-        Expression(std::move(Expression)) {}
+  UnaryExpr(UnaryOperator UnaryOperator, std::unique_ptr<Expr> Expression)
+      : TheUnaryOperator(UnaryOperator), TheExpr(std::move(Expression)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
 };
 
@@ -167,6 +191,14 @@ public:
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
 };
 
+class LiteralCharExpr : public LiteralExpr {
+  char Char;
+
+public:
+  explicit LiteralCharExpr(char Char) : Char(Char) {}
+  auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+};
+
 /// Statement
 ///   ::= IfStmt
 ///   ::= WhileStmt
@@ -183,39 +215,16 @@ public:
   explicit CompoundStmt(std::vector<std::unique_ptr<Statement>> Statements)
       : Statements(std::move(Statements)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  // explicit operator std::string() override { return "CompoudStmt"; }
 };
 
 /// ExprStmt
 ///   ::= Expr ;
 class ExprStmt : public Statement {
-  std::unique_ptr<Expr> Expression;
+  std::unique_ptr<Expr> TheExpr;
 
 public:
-  explicit ExprStmt(std::unique_ptr<Expr> Expr) : Expression(std::move(Expr)) {}
-  auto accept(ASTVisitor &v) -> void override { v.visit(this); }
-};
-
-/// Variable Declaration
-///   ::= DataType Declarator
-///   ::= DataType Declarator '=' Expr
-class VarDecl : public Declaration {
-  std::unique_ptr<Expr> Val; // optional
-
-public:
-  VarDecl(DataType Type, std::unique_ptr<Declarator> TheDeclarator,
-          std::unique_ptr<Expr> Val = nullptr)
-      : Declaration(Type, std::move(TheDeclarator)), Val(std::move(Val)) {}
-  auto accept(ASTVisitor &v) -> void override { v.visit(this); }
-};
-
-/// Declaration Statement, in Compound Statement
-///   ::= VarDecl ;
-class DeclStmt : public Statement { // TODO
-  std::unique_ptr<VarDecl> VariableDeclaration;
-
-public:
-  explicit DeclStmt(std::unique_ptr<VarDecl> VariableDeclaration)
-      : VariableDeclaration(std::move(VariableDeclaration)) {}
+  explicit ExprStmt(std::unique_ptr<Expr> Expr) : TheExpr(std::move(Expr)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
 };
 
@@ -225,10 +234,11 @@ public:
 class IfStmt : public Statement {
   std::unique_ptr<Expr> Cond;
   // Else Body could be nullptr because Else is optional
-  CompoundStmt IfBody, ElseBody;
+  std::unique_ptr<CompoundStmt> IfBody, ElseBody;
 
 public:
-  IfStmt(std::unique_ptr<Expr> Cond, CompoundStmt IfBody, CompoundStmt ElseBody)
+  IfStmt(std::unique_ptr<Expr> Cond, std::unique_ptr<CompoundStmt> IfBody,
+         std::unique_ptr<CompoundStmt> ElseBody = nullptr)
       : Cond(std::move(Cond)), IfBody(std::move(IfBody)),
         ElseBody(std::move(ElseBody)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
@@ -238,11 +248,10 @@ public:
 ///   ::= 'while' '(' Expr ')' '{' CompoundStmt '}'
 class WhileStmt : public Statement {
   std::unique_ptr<Expr> Cond;
-  std::vector<std::unique_ptr<Statement>> Body;
+  std::unique_ptr<CompoundStmt> Body;
 
 public:
-  WhileStmt(std::unique_ptr<Expr> Cond,
-            std::vector<std::unique_ptr<Statement>> Body)
+  WhileStmt(std::unique_ptr<Expr> Cond, std::unique_ptr<CompoundStmt> Body)
       : Cond(std::move(Cond)), Body(std::move(Body)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
 };
@@ -258,27 +267,41 @@ public:
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
 };
 
+class BreakStmt : public Statement {
+public:
+  auto accept(ASTVisitor &V) -> void override { V.visit(this); }
+};
+
+class ContinueStmt : public Statement {
+public:
+  auto accept(ASTVisitor &V) -> void override { V.visit(this); }
+};
+
 /// ParmVarDecl
 ///     ::= DataType Declarator
 class ParmVarDecl : public Declaration {
+  std::unique_ptr<Declarator> TheDeclarator;
+
 public:
   ParmVarDecl(DataType Type, std::unique_ptr<Declarator> TheDeclarator)
-      : Declaration(Type, std::move(TheDeclarator)){};
+      : Declaration(Type), TheDeclarator(std::move(TheDeclarator)){};
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
 };
 
-/// Function Declaration
+/// Function Definition
 ///   ::= ReturnType Name '(' VarList ')' '{' CompoundStmt '}'
-class FunctionDecl : public ASTNode {
-  DataType ReturnType;
+class FunctionDecl : public Declaration {
   std::string Name;
   ParmVarList VarList;
-  CompoundStmt Body;
+  std::unique_ptr<CompoundStmt> Body;
 
 public:
   FunctionDecl(DataType ReturnType, std::string Name, ParmVarList VarList,
-               CompoundStmt Body)
-      : ReturnType(ReturnType), Name(std::move(Name)),
+               std::unique_ptr<CompoundStmt> Body)
+      : Declaration(ReturnType), Name(std::move(Name)),
         VarList(std::move(VarList)), Body(std::move(Body)) {}
   auto accept(ASTVisitor &v) -> void override { v.visit(this); }
+  explicit operator std::string() override {
+    return std::format("{} {}", "int", Name);
+  }
 };

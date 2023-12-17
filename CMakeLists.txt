@@ -35,20 +35,41 @@ include_directories(${ANTLR4_INCLUDE_DIRS})
 
 # set variable pointing to the antlr tool that supports C++
 # this is not required if the jar file can be found under PATH environment
-# set(ANTLR_EXECUTABLE ${CMAKE_SOURCE_DIR}/thirdparty/antlr/antlr-4.9.3-complete.jar)
 set(ANTLR_EXECUTABLE /usr/share/java/antlr-complete.jar)
 # add macros to generate ANTLR Cpp code from grammar
 find_package(ANTLR REQUIRED)
 
 # Call macro to add lexer and grammar to your build dependencies.
-# antlr_target(SampleGrammarParser src/Antlr4/Minic.g4 PARSER
-#              PACKAGE antlrcpptest
-#              COMPILE_FLAGS -lib ${ANTLR_SampleGrammarLexer_OUTPUT_DIR})
 antlr_target(MinicGrammar ${CMAKE_SOURCE_DIR}/src/Antlr4/Minic.g4 LEXER PARSER VISITOR)
 # include generated files in project environment
 include_directories(${ANTLR_MinicGrammar_OUTPUT_DIR})
 
-# add generated grammar to demo binary target
-add_executable(minic src/main.cc src/ASTBuilder.cc ${ANTLR_MinicGrammar_CXX_OUTPUTS})
-# add_executable(minic src/test.cc ${ANTLR_MinicGrammar_CXX_OUTPUTS})
+if(LINUX) 
+    message(STATUS ">>> Linux")
+    set(LLVM_DIR /opt/llvm/lib/cmake/llvm)
+    # set(LLVM_DIR /usr/lib/cmake/llvm)
+else(APPLE)
+    message(STATUS ">>> APPLE")
+    set(LLVM_DIR /opt/homebrew/opt/llvm/lib/cmake/llvm)
+endif()
+find_package(LLVM REQUIRED CONFIG)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++2b -rdynamic")
+
+include_directories(${LLVM_INCLUDE_DIRS})
+separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
+add_definitions(${LLVM_DEFINITIONS_LIST})
+
+file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cc" )
+add_executable(minic ${SOURCES} ${ANTLR_MinicGrammar_CXX_OUTPUTS})
+
+# Find the libraries that correspond to the LLVM components
+# that we wish to use
+llvm_map_components_to_libnames(llvm_libs support )
+
+# Link against LLVM libraries
+target_link_libraries(minic ${llvm_libs} )
 target_link_libraries(minic antlr4_static)

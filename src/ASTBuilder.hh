@@ -4,8 +4,10 @@
 
 #include "MinicBaseVisitor.h"
 #include "MinicParser.h"
+#include <any>
 #include <memory>
 #include <utility>
+namespace Minic {
 
 class ASTBuilder : public MinicBaseVisitor {
   MinicParser::ProgramContext *TheProgramContext;
@@ -24,8 +26,10 @@ public:
   // auto visitDeclaration(MinicParser::DeclarationContext *ctx)
   //     -> std::any override;
 
-  // auto visitVarDeclStmt(MinicParser::VarDeclStmtContext *ctx)
-  //     -> std::any override;
+  auto visitVarDeclStmt(MinicParser::VarDeclStmtContext *ctx)
+      -> std::any override;
+  auto visitGlobalVarDeclStmt(MinicParser::GlobalVarDeclStmtContext *ctx)
+      -> std::any override;
 
   auto visitVarDecl(MinicParser::VarDeclContext *ctx) -> std::any override;
 
@@ -104,3 +108,5 @@ public:
 
 using InitDeclarator =
     std::pair<std::unique_ptr<Declarator>, std::unique_ptr<Initializer>>;
+
+} // namespace Minic

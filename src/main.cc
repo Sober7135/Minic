@@ -3,11 +3,11 @@
 #include "CommonTokenStream.h"
 #include "MinicLexer.h"
 #include "MinicParser.h"
+#include "Visitor.hh"
 
-#include <cassert>
 #include <fstream>
 #include <iostream>
-#include <string>
+#include <llvm/Support/raw_ostream.h>
 
 using namespace antlr4;
 
@@ -19,18 +19,19 @@ auto main(int argc, char *argv[]) -> int {
   CommonTokenStream Tokens(&Lexer);
   Tokens.fill();
 
-  for (auto &token : Tokens.getTokens()) {
-    std::cout << token->toString() << "\n";
-    std::cout << Lexer.getVocabulary().getSymbolicName(token->getType())
-              << "\n";
-    ;
-  }
+  // for (auto &token : Tokens.getTokens()) {
+  //   std::cout << token->toString() << "\n";
+  //   std::cout << Lexer.getVocabulary().getSymbolicName(token->getType())
+  //             << "\n";
+  //   ;
+  // }
 
   MinicParser Parser(&Tokens);
   auto *Program = Parser.program();
-  std::cout << Program->toStringTree(&Parser, true) << std::endl;
-  ASTBuilder TheASTBuilder(Program);
+  // std::cout << Program->toStringTree(&Parser, true) << std::endl;
+  Minic::ASTBuilder TheASTBuilder(Program);
   TheASTBuilder.Build();
   auto &AST = TheASTBuilder.AST();
-  std::cout << std::string(*AST[0]);
+  auto Printer = Minic::ASTPrinter(llvm::outs());
+  Printer.Visit(AST);
 }

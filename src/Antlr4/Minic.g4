@@ -9,9 +9,13 @@ program
 	  ;
 
 declaration
-    : varDeclStmt  // not support function declaration, something like  `int test(int);`
+    : globalVarDeclStmt  // not support function declaration, something like  `int test(int);`
     | functionDecl
 	  ;
+
+globalVarDeclStmt
+    : varDecl Semicolon
+    ;
 
 varDeclStmt 
     : varDecl Semicolon
@@ -76,6 +80,7 @@ statement
     | varDeclStmt
     | returnStmt
     | breakStmt
+    | continueStmt
     ;
 
 ifStmt

@@ -54,6 +54,12 @@ inline std::map<std::string, DataType> String2DataType{
     {"char", DataType::Char},
 };
 
+inline std::map<DataType, std::string> DataType2String{
+    {DataType::Int, "int"},
+    {DataType::Float, "float"},
+    {DataType::Char, "char"},
+};
+
 inline std::map<std::string, BinayOperator> String2BinaryOperator{
     {"<", BinayOperator::Less},          {"<=", BinayOperator::LessEqual},
     {"==", BinayOperator::Equal},        {">", BinayOperator::Greater},

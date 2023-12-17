@@ -7,27 +7,24 @@
 #include <any>
 #include <cassert>
 #include <cstddef>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+namespace Minic {
 
 static Program TheProgramTemp;
 static std::unique_ptr<Expr> VisitedExpr;
 static std::unique_ptr<CompoundStmt> VisitedCompoundStmt;
 static std::unique_ptr<Statement> VisitedStmt;
-
 static std::vector<std::unique_ptr<InitDeclarator>> VisitedInitDeclaratorList;
 static std::unique_ptr<InitDeclarator> VisitedInitDeclarator;
 static std::unique_ptr<Declarator> VisitedDeclarator;
 static std::unique_ptr<Initializer> VisitedInitializer;
-
 static ParmVarList VisitedParmVarList;
 static std::unique_ptr<ParmVarDecl> VisitedParmVarDecl;
-
+static std::unique_ptr<VarDecl> VisitedVarDecl;
 static std::vector<std::unique_ptr<Expr>> VisitedVarList;
-
 static DataType VisitedType;
 
 auto ASTBuilder::Build() -> void {
@@ -35,11 +32,28 @@ auto ASTBuilder::Build() -> void {
   TheProgram = std::move(TheProgramTemp);
 }
 
-/// VisitedVarDeclList
-/// FIXME 区分全局与CompoundStmt
+/// VisitedStmt
+auto ASTBuilder::visitVarDeclStmt(MinicParser::VarDeclStmtContext *ctx)
+    -> std::any {
+  visitVarDecl(ctx->varDecl());
+  VisitedStmt = std::make_unique<VarDeclStmt>(std::move(VisitedVarDecl));
+  return nullptr;
+}
+
+auto ASTBuilder::visitGlobalVarDeclStmt(
+    MinicParser::GlobalVarDeclStmtContext *ctx) -> std::any {
+  // Get VisitedVarDecl
+  visitVarDecl(ctx->varDecl());
+
+  TheProgramTemp.emplace_back(std::make_unique<GlobalVarDecl>(
+      VisitedVarDecl->GetType(), std::move(VisitedVarDecl)));
+  return nullptr;
+}
+
+/// VisitedVarDecl
 auto ASTBuilder::visitVarDecl(MinicParser::VarDeclContext *ctx) -> std::any {
+  // This could be in global scope or CompoundStmt
   // DataType Declarator Initializer
-  std::vector<std::unique_ptr<VarDecl>> VarDeclList;
 
   // Get DataType, VisitedDataType
   visitDataType(ctx->dataType());
@@ -47,11 +61,15 @@ auto ASTBuilder::visitVarDecl(MinicParser::VarDeclContext *ctx) -> std::any {
   // Get InitDeclaratorList, VisitedInitDeclaratorList
   visitInitDeclaratorList(ctx->initDeclaratorList());
 
+  DeclaratorList TheDeclaratorList{};
+  InitializerList TheInitializerList{};
+
   for (auto &&TheInitDeclarator : VisitedInitDeclaratorList) {
-    TheProgramTemp.emplace_back(std::make_unique<VarDecl>(
-        VisitedType, std::move(TheInitDeclarator->first),
-        std::move(TheInitDeclarator->second)));
+    TheDeclaratorList.emplace_back(std::move(TheInitDeclarator->first));
+    TheInitializerList.emplace_back(std::move(TheInitDeclarator->second));
   }
+  VisitedVarDecl = std::make_unique<VarDecl>(
+      VisitedType, std::move(TheDeclaratorList), std::move(TheInitializerList));
 
   return nullptr;
 }
@@ -179,8 +197,7 @@ auto ASTBuilder::visitFunctionDecl(MinicParser::FunctionDeclContext *ctx)
   auto TheCompoundStmt = std::move(VisitedCompoundStmt);
 
   auto TheFunction = std::make_unique<FunctionDecl>(
-      TheDataType, Name, std::move(VisitedParmVarList),
-      std::move(VisitedCompoundStmt));
+      TheDataType, Name, std::move(TheParmVarList), std::move(TheCompoundStmt));
   TheProgramTemp.emplace_back(std::move(TheFunction));
 
   return nullptr;
@@ -338,15 +355,14 @@ auto ASTBuilder::visitEquality(MinicParser::EqualityContext *ctx) -> std::any {
             ->getText();
     auto TheBinaryOperator = String2BinaryOperator[StringBinaryOperator];
 
-    visitComparison(TheComparisonCtx);
-    std::unique_ptr<Expr> RHS = std::move(VisitedExpr);
-
     // Get RHS
     TheComparisonCtx =
         dynamic_cast<MinicParser::ComparisonContext *>(ctx->children[i++]);
+    visitComparison(TheComparisonCtx);
+    std::unique_ptr<Expr> RHS = std::move(VisitedExpr);
 
-    LHS = std::make_unique<BinayExpr>(TheBinaryOperator, std::move(LHS),
-                                      std::move(RHS));
+    LHS = std::make_unique<BinaryExpr>(TheBinaryOperator, std::move(LHS),
+                                       std::move(RHS));
   }
   VisitedExpr = std::move(LHS);
 
@@ -374,11 +390,12 @@ auto ASTBuilder::visitComparison(MinicParser::ComparisonContext *ctx)
             ->getText();
     auto TheBinaryOperator = String2BinaryOperator[StringBinaryOperator];
 
+    TheTermCtx = dynamic_cast<MinicParser::TermContext *>(ctx->children[i++]);
     // Store in VisitedExpr
     visitTerm(TheTermCtx);
     std::unique_ptr<Expr> RHS = std::move(VisitedExpr);
-    LHS = std::make_unique<BinayExpr>(TheBinaryOperator, std::move(LHS),
-                                      std::move(RHS));
+    LHS = std::make_unique<BinaryExpr>(TheBinaryOperator, std::move(LHS),
+                                       std::move(RHS));
   }
 
   VisitedExpr = std::move(LHS);
@@ -404,15 +421,14 @@ auto ASTBuilder::visitTerm(MinicParser::TermContext *ctx) -> std::any {
             ->getText();
     auto TheBinaryOperator = String2BinaryOperator[StringBinaryOperator];
 
-    visitFactor(TheFactorCtx);
-    std::unique_ptr<Expr> RHS = std::move(VisitedExpr);
-
     // Get RHS
     TheFactorCtx =
         dynamic_cast<MinicParser::FactorContext *>(ctx->children[i++]);
+    visitFactor(TheFactorCtx);
+    std::unique_ptr<Expr> RHS = std::move(VisitedExpr);
 
-    LHS = std::make_unique<BinayExpr>(TheBinaryOperator, std::move(LHS),
-                                      std::move(RHS));
+    LHS = std::make_unique<BinaryExpr>(TheBinaryOperator, std::move(LHS),
+                                       std::move(RHS));
   }
   VisitedExpr = std::move(LHS);
 
@@ -438,14 +454,12 @@ auto ASTBuilder::visitFactor(MinicParser::FactorContext *ctx) -> std::any {
             ->getText();
     auto TheBinaryOperator = String2BinaryOperator[StringBinaryOperator];
 
-    visitUnary(TheUnaryCtx);
-    std::unique_ptr<Expr> RHS = std::move(VisitedExpr);
-
     // Get RHS
     TheUnaryCtx = dynamic_cast<MinicParser::UnaryContext *>(ctx->children[i++]);
-
-    LHS = std::make_unique<BinayExpr>(TheBinaryOperator, std::move(LHS),
-                                      std::move(RHS));
+    visitUnary(TheUnaryCtx);
+    std::unique_ptr<Expr> RHS = std::move(VisitedExpr);
+    LHS = std::make_unique<BinaryExpr>(TheBinaryOperator, std::move(LHS),
+                                       std::move(RHS));
   }
   VisitedExpr = std::move(LHS);
 
@@ -533,3 +547,5 @@ auto ASTBuilder::visitVarList(MinicParser::VarListContext *ctx) -> std::any {
 //     -> std::any {
 
 // }
+
+} // namespace Minic

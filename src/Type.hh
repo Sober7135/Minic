@@ -13,6 +13,8 @@ enum class DataType {
 };
 
 enum class BinayOperator {
+  Assign,
+
   // Comparason
   Less,
   LessEqual,
@@ -61,12 +63,14 @@ inline std::map<DataType, std::string> DataType2String{
 };
 
 inline std::map<std::string, BinayOperator> String2BinaryOperator{
-    {"<", BinayOperator::Less},          {"<=", BinayOperator::LessEqual},
-    {"==", BinayOperator::Equal},        {">", BinayOperator::Greater},
-    {">=", BinayOperator::GreaterEqual}, {"!=", BinayOperator::NotEqual},
-    {"+", BinayOperator::Plus},          {"-", BinayOperator::Minus},
-    {"*", BinayOperator::Multiply},      {"/", BinayOperator::Divide},
-    {"||", BinayOperator::Or},           {"&&", BinayOperator::And},
+    {"=", BinayOperator::Assign},     {"<", BinayOperator::Less},
+    {"<=", BinayOperator::LessEqual}, {"==", BinayOperator::Equal},
+    {">", BinayOperator::Greater},    {">=", BinayOperator::GreaterEqual},
+    {"!=", BinayOperator::NotEqual},  {"+", BinayOperator::Plus},
+    {"-", BinayOperator::Minus},      {"*", BinayOperator::Multiply},
+    {"/", BinayOperator::Divide},     {"||", BinayOperator::Or},
+    {"&&", BinayOperator::And},
+
 };
 
 inline std::map<std::string, UnaryOperator> String2UnaryOperator{

@@ -1,6 +1,7 @@
 #include "ASTBuilder.hh"
 #include "AST.hh"
 #include "MinicParser.h"
+#include "MinicVisitor.h"
 #include "Type.hh"
 #include "tree/TerminalNode.h"
 
@@ -335,6 +336,40 @@ auto ASTBuilder::visitContinueStmt(MinicParser::ContinueStmtContext *ctx)
 // {
 //   return nullptr;
 // }
+
+auto ASTBuilder::visitAssignment(MinicParser::AssignmentContext *ctx)
+    -> std::any {
+  // size must >= 1
+  auto size = ctx->children.size();
+  assert(size % 2 == 1);
+  size_t i = 0;
+  auto *TheEqualityCtx =
+      dynamic_cast<MinicParser::EqualityContext *>(ctx->children[i++]);
+
+  // Get VisitedExpr
+  visitEquality(TheEqualityCtx);
+  std::unique_ptr<Expr> LHS = std::move(VisitedExpr);
+
+  while (i < size) {
+    // Get binary operator
+    auto StringBinaryOperator =
+        dynamic_cast<antlr4::tree::TerminalNode *>(ctx->children[i++])
+            ->getText();
+    auto TheBinaryOperator = String2BinaryOperator[StringBinaryOperator];
+
+    // Get RHS
+    TheEqualityCtx =
+        dynamic_cast<MinicParser::EqualityContext *>(ctx->children[i++]);
+    visitEquality(TheEqualityCtx);
+    std::unique_ptr<Expr> RHS = std::move(VisitedExpr);
+
+    LHS = std::make_unique<BinaryExpr>(TheBinaryOperator, std::move(LHS),
+                                       std::move(RHS));
+  }
+  VisitedExpr = std::move(LHS);
+
+  return nullptr;
+}
 
 /// VisitedExpr
 auto ASTBuilder::visitEquality(MinicParser::EqualityContext *ctx) -> std::any {

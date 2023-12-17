@@ -5,8 +5,6 @@
 #include <vector>
 namespace Minic {
 
-
-
 class ASTNode;
 
 class Declaration;
@@ -79,6 +77,42 @@ private:
 public:
   explicit ASTPrinter(llvm::raw_ostream &Out) : Out(Out){};
 
+  auto Visit(const Program &TheProgram) -> void;
+
+  auto Visit(ASTNode *Node) -> void override;
+  auto Visit(Declaration *Node) -> void override;
+  auto Visit(VarDecl *Node) -> void override;
+  auto Visit(ParmVarDecl *Node) -> void override;
+  auto Visit(FunctionDecl *Node) -> void override;
+
+  auto Visit(Expr *Node) -> void override;
+  auto Visit(VariableExpr *Node) -> void override;
+  auto Visit(CallExpr *Node) -> void override;
+  auto Visit(UnaryExpr *Node) -> void override;
+  auto Visit(BinaryExpr *Node) -> void override;
+  auto Visit(LiteralExpr *Node) -> void override;
+  auto Visit(LiteralIntegerExpr *Node) -> void override;
+  auto Visit(LiteralFloatExpr *Node) -> void override;
+  auto Visit(LiteralCharExpr *Node) -> void override;
+
+  auto Visit(Statement *Node) -> void override;
+  auto Visit(ExprStmt *Node) -> void override;
+  auto Visit(IfStmt *Node) -> void override;
+  auto Visit(WhileStmt *Node) -> void override;
+  auto Visit(ReturnStmt *Node) -> void override;
+  auto Visit(BreakStmt *Node) -> void override;
+  auto Visit(ContinueStmt *Node) -> void override;
+  auto Visit(VarDeclStmt *Node) -> void override;
+
+  auto Visit(CompoundStmt *Node) -> void override;
+  auto Visit(Declarator *Node) -> void override;
+  auto Visit(Initializer *Node) -> void override;
+};
+
+class CodeGenVisitor : public ASTVisitor {
+  using Program = std::vector<std::unique_ptr<Declaration>>;
+
+public:
   auto Visit(const Program &TheProgram) -> void;
 
   auto Visit(ASTNode *Node) -> void override;

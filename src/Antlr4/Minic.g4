@@ -113,12 +113,12 @@ continueStmt
     ;
 
 expr
-    : equality
+    : assignment
     ;
 
-// assignment
-//     : equality (Assign equality)*
-//     ;
+assignment
+    : equality (Assign equality)*
+    ;
 
 equality
     : comparison ((NotEqual | Equal) comparison)*

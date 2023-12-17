@@ -8,11 +8,11 @@
 
 namespace Minic {
 
-/* ================= ASTVisitor ================== */
+/* =============================== ASTVisitor =============================== */
 // auto ASTVisitor::Visit(ASTNode *Node) -> void { Node->accept(this); }
 // auto ASTVisitor::Visit(Declaration *Node) -> void { Node->accept(this); }
 
-/* ================ ASTPrinter =================== */
+/* =============================== ASTPrinter =============================== */
 auto ASTPrinter::Visit(const Program &TheProgram) -> void {
   for (const auto &TheDeclaration : TheProgram) {
     Visit(TheDeclaration.get());
@@ -88,7 +88,7 @@ auto ASTPrinter::Visit(LiteralCharExpr *Node) -> void {
 auto ASTPrinter::Visit(Statement *Node) -> void { Node->accept(this); }
 
 auto ASTPrinter::Visit(ExprStmt *Node) -> void {
-  Out << StringWrapper(std::string(*Node)) << '\n';
+  Out << StringWrapper(std::string(*Node), I) << '\n';
 }
 
 auto ASTPrinter::Visit(IfStmt *Node) -> void {
@@ -151,5 +151,7 @@ auto ASTPrinter::Visit(Initializer *Node) -> void {
   }
   Out << StringWrapper(std::string(*Node), I);
 }
+
+
 
 } // namespace Minic

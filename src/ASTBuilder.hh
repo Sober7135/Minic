@@ -80,6 +80,8 @@ public:
       -> std::any override;
 
   // auto visitExpr(MinicParser::ExprContext *ctx) -> std::any override;
+  auto visitAssignment(MinicParser::AssignmentContext *ctx)
+      -> std::any override;
 
   auto visitEquality(MinicParser::EqualityContext *ctx) -> std::any override;
 

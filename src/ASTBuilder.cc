@@ -45,8 +45,9 @@ auto ASTBuilder::visitGlobalVarDeclStmt(
   // Get VisitedVarDecl
   visitVarDecl(ctx->varDecl());
 
-  TheProgramTemp.emplace_back(std::make_unique<GlobalVarDecl>(
-      VisitedVarDecl->GetType(), std::move(VisitedVarDecl)));
+  // TheProgramTemp.emplace_back(std::make_unique<GlobalVarDecl>(
+  //     VisitedVarDecl->GetType(), std::move(VisitedVarDecl)));
+  TheProgramTemp.emplace_back(std::move(VisitedVarDecl));
   return nullptr;
 }
 

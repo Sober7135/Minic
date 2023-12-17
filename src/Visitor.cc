@@ -39,15 +39,6 @@ auto ASTPrinter::Visit(VarDecl *Node) -> void {
   I -= 2;
 }
 
-auto ASTPrinter::Visit(GlobalVarDecl *Node) -> void {
-  // Top level
-  Out << StringWrapper(std::string(*Node), I) << '\n';
-
-  I += 2;
-  Visit(Node->TheVarDecl.get());
-  I -= 2;
-}
-
 auto ASTPrinter::Visit(FunctionDecl *Node) -> void {
   // Top Level
   Out << StringWrapper(std::string(*Node), I) << '\n';

@@ -85,7 +85,9 @@ public:
       : Declaration(Type), TheDeclaratorList(std::move(TheDeclaratorList)),
         TheInitializerList(std::move(TheInitializerList)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
-  explicit operator std::string() override { return "VarDecl " + DataType2String[Type]; }
+  explicit operator std::string() override {
+    return "VarDecl " + DataType2String[Type];
+  }
   [[nodiscard]] auto GetType() const -> DataType { return Type; }
 
   friend class ASTPrinter;
@@ -287,20 +289,6 @@ public:
       : TheVarDecl(std::move(TheVarDecl)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "VarDeclStmt"; }
-
-  friend class ASTPrinter;
-};
-
-/// Global Scope
-class GlobalVarDecl : public Declaration {
-protected:
-  std::unique_ptr<VarDecl> TheVarDecl;
-
-public:
-  explicit GlobalVarDecl(DataType Type, std::unique_ptr<VarDecl> TheVarDecl)
-      : Declaration(Type), TheVarDecl(std::move(TheVarDecl)) {}
-  auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
-  explicit operator std::string() override { return "GlobalVarDecl"; }
 
   friend class ASTPrinter;
 };

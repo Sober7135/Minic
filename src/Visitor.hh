@@ -13,7 +13,6 @@ class Declaration;
 class VarDecl;
 class ParmVarDecl;
 class FunctionDecl;
-class GlobalVarDecl;
 
 class Expr;
 class VariableExpr;
@@ -45,7 +44,6 @@ public:
   virtual auto Visit(Declaration *Node) -> void = 0;
   virtual auto Visit(VarDecl *Node) -> void = 0;
   virtual auto Visit(ParmVarDecl *Node) -> void = 0;
-  virtual auto Visit(GlobalVarDecl *Node) -> void = 0;
   virtual auto Visit(FunctionDecl *Node) -> void = 0;
 
   virtual auto Visit(Expr *Node) -> void = 0;
@@ -87,7 +85,6 @@ public:
   auto Visit(Declaration *Node) -> void override;
   auto Visit(VarDecl *Node) -> void override;
   auto Visit(ParmVarDecl *Node) -> void override;
-  auto Visit(GlobalVarDecl *Node) -> void override;
   auto Visit(FunctionDecl *Node) -> void override;
 
   auto Visit(Expr *Node) -> void override;

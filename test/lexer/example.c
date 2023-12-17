@@ -1,10 +1,14 @@
-int x = 44;
+int x[5] = {1, 2, 3, 4, 5};
 
 int main() {
-  int x = 234; 
-  float xx = .234 * 2.3;
-  while (1) {
-
+  while (x > 1) {
+    if (x > 4) {
+      int yy = 345;
+      int xx = main();
+      char c[10][10] = {{main(), 1}, {4, man()}};
+      continue;
+    }
+    break;
   }
   return 0;
 }

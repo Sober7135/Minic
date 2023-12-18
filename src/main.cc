@@ -28,7 +28,7 @@ auto main(int argc, char *argv[]) -> int {
 
   MinicParser Parser(&Tokens);
   auto *Program = Parser.program();
-  // std::cout << Program->toStringTree(&Parser, true) << std::endl;
+  std::cout << Program->toStringTree(&Parser, true) << std::endl;
   Minic::ASTBuilder TheASTBuilder(Program);
   TheASTBuilder.Build();
   auto &AST = TheASTBuilder.AST();

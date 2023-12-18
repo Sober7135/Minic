@@ -242,6 +242,11 @@ auto ASTBuilder::visitParmVarDecl(MinicParser::ParmVarDeclContext *ctx)
 /// VisitedCompoundStmt
 auto ASTBuilder::visitCompoundStmt(MinicParser::CompoundStmtContext *ctx)
     -> std::any {
+  if (!ctx) {
+    VisitedCompoundStmt = nullptr;
+    return nullptr;
+  }
+
   std::vector<std::unique_ptr<Statement>> TheStmts;
   for (auto &TheStmtCtx : ctx->statement()) {
     // Get VisitedStmt

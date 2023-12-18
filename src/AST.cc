@@ -22,4 +22,12 @@ Initializer::operator std::string() {
   }
   return Ret;
 }
+
+FunctionDecl::operator std::string() {
+  auto IsPrototype_ = IsPrototype();
+  if (IsPrototype_) {
+    return "FunctionPrototype " + Name;
+  }
+  return "FunctionDecl " + Name;
+}
 } // namespace Minic

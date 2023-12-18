@@ -43,10 +43,12 @@ auto ASTPrinter::Visit(FunctionDecl *Node) -> void {
   // Top Level
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
-  I += 2;
-  // CompoundStmt
-  Visit(Node->Body.get());
-  I -= 2;
+  if (!Node->IsPrototype()) {
+    I += 2;
+    // CompoundStmt
+    Visit(Node->Body.get());
+    I -= 2;
+  }
 }
 
 auto ASTPrinter::Visit(ParmVarDecl *Node) -> void {
@@ -151,7 +153,5 @@ auto ASTPrinter::Visit(Initializer *Node) -> void {
   }
   Out << StringWrapper(std::string(*Node), I);
 }
-
-
 
 } // namespace Minic

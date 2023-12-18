@@ -321,7 +321,8 @@ public:
       : Declaration(ReturnType), Name(std::move(Name)),
         VarList(std::move(VarList)), Body(std::move(Body)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
-  explicit operator std::string() override { return "FunctionDecl"; }
+  [[nodiscard]] auto IsPrototype() const -> bool { return Body == nullptr; }
+  explicit operator std::string() override;
 
   friend class ASTPrinter;
 };

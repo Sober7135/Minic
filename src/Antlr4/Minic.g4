@@ -57,7 +57,8 @@ literal
 	  ;
     
 functionDecl
-    : dataType Identifier LeftParen parmVarList? RightParen compoundStmt // not function declaration
+    : dataType Identifier LeftParen parmVarList? RightParen compoundStmt? // not function declaration
+    | dataType Identifier LeftParen parmVarList? RightParen Semicolon     // not function declaration
     ;
 
 parmVarList

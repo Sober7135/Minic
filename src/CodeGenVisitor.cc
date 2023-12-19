@@ -1,9 +1,31 @@
 #include "AST.hh"
+#include "Context.hh"
+#include "Log.hh"
+
 #include "Visitor.hh"
+#include <cassert>
+
+#include <cstddef>
+#include <llvm/ADT/APInt.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/GlobalValue.h>
+#include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/raw_ostream.h>
+
+#include <memory>
+#include <vector>
 
 namespace Minic {
 
-/* =============================== CodeGenVisitor ============================*/
+/* =============================== CodeGenVisitor =========================== */
 auto CodeGenVisitor::Visit(const Program &TheProgram) -> void {
   for (const auto &Decl : TheProgram) {
     Visit(Decl.get());
@@ -14,19 +36,180 @@ auto CodeGenVisitor::Visit(ASTNode *Node) -> void { Node->accept(this); }
 
 auto CodeGenVisitor::Visit(Declaration *Node) -> void { Node->accept(this); }
 
+/// https://stackoverflow.com/questions/45471470/how-to-generate-code-for-initializing-global-variables-with-non-const-values-in
 auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
-  // TODO
+  /// DataType Identifier = Expr
+  auto *Type = LW->GetType(Node->GetType());
+  if (Current->IsTop()) {
+    // TODO : Handle Array
+    for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
+      Constant *TheInitializer = nullptr;
+      if (Node->TheInitializerList[i]) {
+        // Have initializer
+        Visit(Node->TheInitializerList[i].get());
+        if (!TheValue) {
+          panic("Failed to generate the initializer");
+        }
+        TheInitializer = static_cast<Constant *>(TheValue);
+        if (!TheInitializer) {
+          panic("Failed to generate the initializer, static_cast");
+        }
+      }
+      auto Name = Node->TheDeclaratorList[i]->Name;
+      auto *GV = new GlobalVariable(*LW->Mod.get(), Type, false,
+                                    llvm::GlobalValue::ExternalLinkage,
+                                    TheInitializer, Name);
+      Current->Add(Name, GV);
+    }
+    return;
+  }
+
+  auto *TheFunction = LW->Builder->GetInsertBlock()->getParent();
+
+  for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
+    Constant *TheInitializer = nullptr;
+    if (Node->TheInitializerList[i]) {
+      // Have initializer
+      TheValue = nullptr;
+      Visit(Node->TheInitializerList[i].get());
+      if (!TheValue) {
+        panic("Failed to generate the initializer");
+      }
+      TheInitializer = static_cast<Constant *>(TheValue);
+      if (!TheInitializer) {
+        panic("Failed to generate the initializer, static_cast");
+      }
+    }
+    auto Name = Node->TheDeclaratorList[i]->Name;
+    auto *Alloca = LLVMWrapper::CreateEntryBlockAlloca(TheFunction, Type, Name);
+    LW->Builder->CreateStore(TheInitializer, Alloca);
+
+    Current->Add(Name, Alloca);
+  }
 }
 
-auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {}
+auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
+  if (!Current->IsTop()) {
+    panic("Nested function is not allowed");
+    assert(0 && "UNREACHABLE");
+    return;
+  }
 
-auto CodeGenVisitor::Visit(ParmVarDecl *Node) -> void {}
+  auto *Ret = Current->Find(Node->Name);
+
+  // Lookup
+  if (Ret) {
+    auto *F = static_cast<Function *>(Ret);
+    if (!F) {
+      panic(std::string(Ret->getName()) + "is defined and is not a function");
+    }
+    if (!F->empty()) {
+      panic("Redefinition of Function " + std::string(Ret->getName()));
+    }
+  }
+
+  // Prototype
+  std::vector<llvm::Type *> TypeList;
+  std::vector<std::string> NameList;
+  auto *RetType = LW->GetType(Node->Type);
+  for (const auto &ParmVar : Node->VarList) {
+    auto Type = ParmVar->GetType();
+    const auto &VarName = ParmVar->GetName();
+    TypeList.emplace_back(LW->GetType(Type));
+    NameList.emplace_back(VarName);
+  }
+
+  auto *FT = FunctionType::get(RetType, TypeList, false);
+  auto *F = Function::Create(FT, Function::ExternalLinkage, Node->Name,
+                             LW->Mod.get());
+  for (unsigned i = 0, end = F->arg_size(); i < end; i++) {
+    (F->args().begin() + i)->setName(NameList[i]);
+  }
+
+  if (Node->IsPrototype()) {
+    TheValue = F;
+    Current->Add(Node->Name, F);
+    return;
+  }
+
+  // Body
+  auto *BB = BasicBlock::Create(*LW->Ctx.get(), "entry", F);
+  LW->Builder->SetInsertPoint(BB);
+
+  auto Child = std::make_unique<Scope>(Current);
+  Current = Child.get();
+
+  for (auto &Arg : F->args()) {
+    // Create an alloca for this variable
+    auto *Alloca = LLVMWrapper::CreateEntryBlockAlloca(F, Arg.getType(),
+                                                       Arg.getName().str());
+    LW->Builder->CreateStore(&Arg, Alloca);
+    Current->Add(std::string(Arg.getName()), Alloca);
+  }
+
+  TheValue = nullptr;
+  Visit(Node->Body.get());
+  if (TheValue) {
+    // Finish off the function
+    llvm::verifyFunction(*F);
+    TheValue = F;
+  }
+
+  // Reset Current
+  Current = Child->GetParent();
+
+  Current->Add(Node->Name, F);
+  return;
+}
+
+auto CodeGenVisitor::Visit(ParmVarDecl *Node) -> void { panic("Unreachable"); }
 
 auto CodeGenVisitor::Visit(Expr *Node) -> void { Node->accept(this); }
 
-auto CodeGenVisitor::Visit(VariableExpr *Node) -> void {}
+auto CodeGenVisitor::Visit(VariableExpr *Node) -> void {
+  // TODO Handle Array
+  // TODO Name shadowing
+  const auto &VarName = Node->GetName();
+  auto *Val = Current->Find(VarName);
+  if (!Val) {
+    panic("Unknown Variable " + VarName);
+  }
+  auto *Casted = static_cast<llvm::AllocaInst *>(Val);
+  if (!Casted) {
+    panic(VarName + " is not a variable stored in stack");
+  }
 
-auto CodeGenVisitor::Visit(CallExpr *Node) -> void {}
+  TheValue = LW->Builder->CreateLoad(Casted->getAllocatedType(), Casted,
+                                     VarName.c_str());
+}
+
+auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
+  // TODO Check Args
+  auto *Val = Current->Find(Node->Callee);
+  auto *TheFunction = static_cast<Function *>(Val);
+  if (!Val) {
+    panic(Node->Callee + " is not function");
+  }
+
+  const auto &Args = Node->Args;
+  // Check Size
+  if (Args.size() != TheFunction->arg_size()) {
+    panic("Wrong arguments size!!!");
+  }
+
+  // Type checking ???
+  std::vector<llvm::Value *> ArgVs;
+  for (const auto &Arg : Args) {
+    TheValue = nullptr;
+    Visit(Arg.get());
+    if (!TheValue) {
+      panic("Failed to generate " + Node->Callee + "'s args");
+    }
+    ArgVs.emplace_back(TheValue);
+  }
+
+  TheValue = LW->Builder->CreateCall(TheFunction, ArgVs, "calltmp");
+}
 
 auto CodeGenVisitor::Visit(UnaryExpr *Node) -> void {}
 
@@ -34,29 +217,86 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {}
 
 auto CodeGenVisitor::Visit(LiteralExpr *Node) -> void { Node->accept(this); }
 
-auto CodeGenVisitor::Visit(LiteralIntegerExpr *Node) -> void {}
+auto CodeGenVisitor::Visit(LiteralIntegerExpr *Node) -> void {
+  TheValue = ConstantInt::get(*LW->Ctx.get(), APInt(32, Node->Val));
+}
 
-auto CodeGenVisitor::Visit(LiteralFloatExpr *Node) -> void {}
+auto CodeGenVisitor::Visit(LiteralFloatExpr *Node) -> void {
+  TheValue = ConstantFP::get(*LW->Ctx.get(), APFloat(Node->Val));
+}
 
-auto CodeGenVisitor::Visit(LiteralCharExpr *Node) -> void {}
+auto CodeGenVisitor::Visit(LiteralCharExpr *Node) -> void {
+  TheValue = ConstantInt::get(*LW->Ctx.get(), APInt(8, Node->Char));
+}
 
 auto CodeGenVisitor::Visit(Statement *Node) -> void { Node->accept(this); }
 
-auto CodeGenVisitor::Visit(ExprStmt *Node) -> void {}
+auto CodeGenVisitor::Visit(ExprStmt *Node) -> void {
+  Visit(Node->TheExpr.get());
+}
 
-auto CodeGenVisitor::Visit(IfStmt *Node) -> void {}
+auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
+  TheValue = nullptr;
+  Visit(Node->Cond.get());
+  if (!TheValue) {
+    panic("Failed to generate if condition");
+  }
+  auto *CondV = LW->ConvertToBool(TheValue, "ifcond");
+  if (!CondV) {
+    panic("Failed to convert to bool");
+  }
+
+  auto *TheFunction = LW->Builder->GetInsertBlock()->getParent();
+
+  // Create blocks for the then and else cases.  Insert the 'then' block at the
+  // end of the function.
+  BasicBlock *ThenBB = BasicBlock::Create(*LW->Ctx, "then", TheFunction);
+  BasicBlock *ElseBB = BasicBlock::Create(*LW->Ctx, "else");
+  BasicBlock *MergeBB = BasicBlock::Create(*LW->Ctx, "ifcont");
+
+  LW->Builder->CreateCondBr(CondV, ThenBB, ElseBB);
+
+  // Emit then value.
+  LW->Builder->SetInsertPoint(ThenBB);
+
+  Visit(Node->IfBody.get());
+  LW->Builder->CreateBr(MergeBB);
+
+  // Emit else block.
+  TheFunction->insert(TheFunction->end(), ElseBB);
+  LW->Builder->SetInsertPoint(ElseBB);
+
+  Visit(Node->ElseBody.get());
+  LW->Builder->CreateBr(MergeBB);
+
+  // Emit merge block.
+  TheFunction->insert(TheFunction->end(), MergeBB);
+}
 
 auto CodeGenVisitor::Visit(WhileStmt *Node) -> void {}
 
-auto CodeGenVisitor::Visit(ReturnStmt *Node) -> void {}
+auto CodeGenVisitor::Visit(ReturnStmt *Node) -> void {
+  TheValue = nullptr;
+  Visit(Node->Expression.get());
+  if (!TheValue) {
+    panic("Failed to generate return statement Expression");
+  }
+  LW->Builder->CreateRet(TheValue);
+}
 
 auto CodeGenVisitor::Visit(BreakStmt *Node) -> void {}
 
 auto CodeGenVisitor::Visit(ContinueStmt *Node) -> void {}
 
-auto CodeGenVisitor::Visit(VarDeclStmt *Node) -> void {}
+auto CodeGenVisitor::Visit(VarDeclStmt *Node) -> void {
+  Visit(Node->TheVarDecl.get());
+}
 
-auto CodeGenVisitor::Visit(CompoundStmt *Node) -> void {}
+auto CodeGenVisitor::Visit(CompoundStmt *Node) -> void {
+  for (const auto &Stmt : Node->Statements) {
+    Visit(Stmt.get());
+  }
+}
 
 auto CodeGenVisitor::Visit(Declarator *Node) -> void {}
 
@@ -64,6 +304,8 @@ auto CodeGenVisitor::Visit(Initializer *Node) -> void {
   if (!Node) {
     return;
   }
-  // TODO
+  // TODO Handle Array
+  Visit(Node->TheExpr.get());
 }
+
 } // namespace Minic

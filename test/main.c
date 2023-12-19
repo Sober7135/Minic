@@ -1,3 +1,6 @@
-int xxx = 4, y;
+int x = 4, y;
 
-int main() { int x = 44, y = 114514, z = 999; }
+int test() { return 0; }
+int main() {
+  int test = test();
+}

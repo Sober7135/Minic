@@ -35,7 +35,7 @@ include_directories(${ANTLR4_INCLUDE_DIRS})
 
 # set variable pointing to the antlr tool that supports C++
 # this is not required if the jar file can be found under PATH environment
-set(ANTLR_EXECUTABLE /usr/share/java/antlr-complete.jar)
+set(ANTLR_EXECUTABLE ${CMAKE_SOURCE_DIR}/thirdparty/antlr/antlr-4.13.1-complete.jar)
 # add macros to generate ANTLR Cpp code from grammar
 find_package(ANTLR REQUIRED)
 
@@ -68,7 +68,7 @@ add_executable(minic ${SOURCES} ${ANTLR_MinicGrammar_CXX_OUTPUTS})
 
 # Find the libraries that correspond to the LLVM components
 # that we wish to use
-llvm_map_components_to_libnames(llvm_libs support )
+llvm_map_components_to_libnames(llvm_libs support core)
 
 # Link against LLVM libraries
 target_link_libraries(minic ${llvm_libs} )

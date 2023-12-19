@@ -1,8 +1,15 @@
 #pragma once
 
+#include "Context.hh"
+#include "LLVM.hh"
+
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"
+
 #include <memory>
 #include <vector>
+
 namespace Minic {
 
 class ASTNode;
@@ -113,6 +120,19 @@ class CodeGenVisitor : public ASTVisitor {
   using Program = std::vector<std::unique_ptr<Declaration>>;
 
 public:
+  std::unique_ptr<LLVMWrapper> LW;
+
+private:
+  std::unique_ptr<Scope> TheScope;
+  Scope *Current;
+  llvm::Value *TheValue = nullptr;
+  llvm::AllocaInst *Addr = nullptr;
+
+public:
+  CodeGenVisitor()
+      : LW(std::make_unique<LLVMWrapper>()),
+        TheScope(std::make_unique<Scope>()), Current(TheScope.get()) {}
+
   auto Visit(const Program &TheProgram) -> void;
 
   auto Visit(ASTNode *Node) -> void override;

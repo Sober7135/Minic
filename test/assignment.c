@@ -1,4 +1,7 @@
+int x = 6;
+
 int main() {
-  int x = 5; 
-  x = 6;
+  int y = 7;
+  float f = 9.0;
+  return 0;
 }

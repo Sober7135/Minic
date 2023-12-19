@@ -4,7 +4,7 @@
 #include <map>
 #include <stdexcept>
 #include <string>
-
+namespace Minic {
 enum class DataType {
   Int,
   Float,
@@ -77,3 +77,5 @@ inline std::map<std::string, UnaryOperator> String2UnaryOperator{
     {"+", UnaryOperator::Plus},
     {"-", UnaryOperator::Minus},
 };
+
+} // namespace Minic

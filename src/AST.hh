@@ -27,6 +27,7 @@ public:
 class Expr : public ASTNode {};
 
 class Declarator : public ASTNode {
+protected:
   std::string Name;
   std::vector<int> Dimension{}; // when is not array, it should be empty
   bool _IsArray = false;
@@ -36,8 +37,11 @@ public:
   Declarator(std::string Name, std::vector<int> &&Dimension)
       : Name(std::move(Name)), Dimension(Dimension), _IsArray(true) {}
   [[nodiscard]] auto IsArray() const -> bool { return _IsArray; }
+  [[nodiscard]] auto GetName() const -> const std::string & { return Name; }
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override;
+
+  friend class CodeGenVisitor;
 };
 
 class Initializer : ASTNode {
@@ -54,6 +58,8 @@ public:
   [[nodiscard]] auto IsLeaf() const -> bool { return _IsLeaf; }
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override;
+
+  friend class CodeGenVisitor;
 };
 
 /// Declaration
@@ -91,6 +97,7 @@ public:
   [[nodiscard]] auto GetType() const -> DataType { return Type; }
 
   friend class ASTPrinter;
+  friend class CodeGenVisitor;
 };
 
 /// VariableExpr
@@ -100,6 +107,7 @@ class VariableExpr : public Expr {
 
 public:
   explicit VariableExpr(std::string Name) : Name(std::move(Name)) {}
+  [[nodiscard]] auto GetName() const -> const std::string & { return Name; }
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "VariableExpr"; }
 };
@@ -110,6 +118,7 @@ public:
 ///   ::= Expr, Args
 ///   ::= <Empty>
 class CallExpr : public Expr {
+protected:
   std::string Callee;
   std::vector<std::unique_ptr<Expr>> Args;
 
@@ -118,6 +127,8 @@ public:
       : Callee(std::move(Callee)), Args(std::move(Args)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "CallExpr"; }
+
+  friend class CodeGenVisitor;
 };
 
 /// BinayExpr
@@ -156,33 +167,42 @@ class LiteralExpr : public Expr {};
 /// Literal Integer Expression.
 ///   ::= [0-9]+
 class LiteralIntegerExpr : public LiteralExpr {
+protected:
   int Val;
 
 public:
   explicit LiteralIntegerExpr(int Val) : Val(Val) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "LiteralIntegerExpr"; }
+
+  friend class CodeGenVisitor;
 };
 
 /// Literal Float Expression.
 ///   ::= [0-9]+\.[0-9]*
 ///   ::= \.[0-9]+
 class LiteralFloatExpr : public LiteralExpr {
+protected:
   float Val;
 
 public:
   explicit LiteralFloatExpr(float Val) : Val(Val) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "LiteralFloatExpr"; }
+
+  friend class CodeGenVisitor;
 };
 
 class LiteralCharExpr : public LiteralExpr {
+protected:
   char Char;
 
 public:
   explicit LiteralCharExpr(char Char) : Char(Char) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "LiteralCharExpr"; }
+
+  friend class CodeGenVisitor;
 };
 
 /// Statement
@@ -207,17 +227,21 @@ public:
   explicit operator std::string() override { return "CompoudStmt"; }
 
   friend class ASTPrinter;
+  friend class CodeGenVisitor;
 };
 
 /// ExprStmt
 ///   ::= Expr ;
 class ExprStmt : public Statement {
+protected:
   std::unique_ptr<Expr> TheExpr;
 
 public:
   explicit ExprStmt(std::unique_ptr<Expr> Expr) : TheExpr(std::move(Expr)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "ExprStmt"; }
+
+  friend class CodeGenVisitor;
 };
 
 /// If Statement else is optional.
@@ -238,6 +262,7 @@ public:
   explicit operator std::string() override { return "IfStmt"; }
 
   friend class ASTPrinter;
+  friend class CodeGenVisitor;
 };
 
 /// While Statement.
@@ -266,6 +291,8 @@ public:
       : Expression(std::move(Expression)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "ReturnStmt"; }
+
+  friend class CodeGenVisitor;
 };
 
 class BreakStmt : public Statement {
@@ -291,16 +318,22 @@ public:
   explicit operator std::string() override { return "VarDeclStmt"; }
 
   friend class ASTPrinter;
+  friend class CodeGenVisitor;
 };
 
 /// ParmVarDecl
 ///     ::= DataType Declarator
 class ParmVarDecl : public Declaration {
+protected:
   std::unique_ptr<Declarator> TheDeclarator;
 
 public:
   ParmVarDecl(DataType Type, std::unique_ptr<Declarator> TheDeclarator)
       : Declaration(Type), TheDeclarator(std::move(TheDeclarator)){};
+  [[nodiscard]] auto GetType() const -> DataType { return Type; }
+  [[nodiscard]] auto GetName() const -> const std::string & {
+    return TheDeclarator->GetName();
+  }
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "ParmVarDecl"; }
 };
@@ -325,6 +358,7 @@ public:
   explicit operator std::string() override;
 
   friend class ASTPrinter;
+  friend class CodeGenVisitor;
 };
 
 using Program = std::vector<std::unique_ptr<Declaration>>;

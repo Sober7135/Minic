@@ -95,7 +95,6 @@ public:
     return "VarDecl " + DataType2String[Type];
   }
   [[nodiscard]] auto GetType() const -> DataType { return Type; }
-
   friend class ASTPrinter;
   friend class CodeGenVisitor;
 };

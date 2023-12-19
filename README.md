@@ -62,3 +62,6 @@ G[program]:
 ### float
 not support e/E
 not support function declaration without definition
+
+没有初始化默认初始化为0？？？
+Global Variable auto initialize to 0

@@ -26,6 +26,23 @@
 namespace Minic {
 
 /* =============================== CodeGenVisitor =========================== */
+/* ================================== Private =============================== */
+void CodeGenVisitor::CheckVariableRedefinition(
+    const std::unique_ptr<Declarator> &D) {
+  auto *Ret = Current->FindCurrent(D->GetName());
+  if (Ret) {
+    panic("Redefinition of " + D->GetName());
+  }
+}
+
+void CodeGenVisitor::CheckVariableRedefinition(
+    const std::vector<std::unique_ptr<Declarator>> &DList) {
+  for (const auto &D : DList) {
+    CheckVariableRedefinition(D);
+  }
+}
+
+/* =============================== CodeGenVisitor =========================== */
 auto CodeGenVisitor::Visit(const Program &TheProgram) -> void {
   for (const auto &Decl : TheProgram) {
     Visit(Decl.get());
@@ -40,8 +57,12 @@ auto CodeGenVisitor::Visit(Declaration *Node) -> void { Node->accept(this); }
 auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
   /// DataType Identifier = Expr
   auto *Type = LW->GetType(Node->GetType());
+
+  CheckVariableRedefinition(Node->TheDeclaratorList);
+
   if (Current->IsTop()) {
     // TODO : Handle Array
+    // TODO : Global Variable initialize to 0
     for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
       Constant *TheInitializer = nullptr;
       if (Node->TheInitializerList[i]) {
@@ -82,7 +103,10 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
     }
     auto Name = Node->TheDeclaratorList[i]->Name;
     auto *Alloca = LLVMWrapper::CreateEntryBlockAlloca(TheFunction, Type, Name);
-    LW->Builder->CreateStore(TheInitializer, Alloca);
+    // LOL
+    if (TheInitializer) {
+      LW->Builder->CreateStore(TheInitializer, Alloca);
+    }
 
     Current->Add(Name, Alloca);
   }
@@ -292,6 +316,7 @@ auto CodeGenVisitor::Visit(VarDeclStmt *Node) -> void {
   Visit(Node->TheVarDecl.get());
 }
 
+// FIXME CompoundStmt inside CompoundStmt
 auto CodeGenVisitor::Visit(CompoundStmt *Node) -> void {
   for (const auto &Stmt : Node->Statements) {
     Visit(Stmt.get());

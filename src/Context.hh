@@ -21,17 +21,20 @@ public:
 
   [[nodiscard]] auto GetParent() const -> Scope * { return Parent; }
 
+  [[nodiscard]] auto FindCurrent(const std::string &Name) -> llvm::Value * {
+    llvm::Value *Ret = nullptr;
+    Ret = SymbolTable[Name];
+    return Ret;
+  }
+
   [[nodiscard]] auto Find(const std::string &Name) -> llvm::Value * {
     llvm::Value *Ret = nullptr;
-    if ((Ret = SymbolTable[Name])) {
-      return Ret;
-    }
-
+    Ret = FindCurrent(Name);
     if (Parent) {
       return Parent->Find(Name);
     }
 
-    return nullptr;
+    return Ret;
   }
 
   [[nodiscard]] auto IsTop() const -> bool { return Parent == nullptr; }

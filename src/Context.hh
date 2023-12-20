@@ -37,7 +37,7 @@ public:
     return Ret;
   }
 
-  [[nodiscard]] auto IsTop() const -> bool { return Parent == nullptr; }
+  [[nodiscard]] auto isTop() const -> bool { return Parent == nullptr; }
 };
 
 } // namespace Minic

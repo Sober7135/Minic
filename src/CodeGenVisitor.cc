@@ -1,10 +1,9 @@
 #include "AST.hh"
 #include "Context.hh"
 #include "Log.hh"
-
 #include "Visitor.hh"
-#include <cassert>
 
+#include <cassert>
 #include <cstddef>
 #include <llvm/ADT/APInt.h>
 #include <llvm/IR/BasicBlock.h>
@@ -19,7 +18,6 @@
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/raw_ostream.h>
-
 #include <memory>
 #include <vector>
 
@@ -55,18 +53,19 @@ auto CodeGenVisitor::Visit(Declaration *Node) -> void { Node->accept(this); }
 
 /// https://stackoverflow.com/questions/45471470/how-to-generate-code-for-initializing-global-variables-with-non-const-values-in
 auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
+  // TODO : Check LiteralExpr Type `int x = 1.3;`
+  // TODO : Handle Array
   /// DataType Identifier = Expr
-  auto *Type = LW->GetType(Node->GetType());
+  auto *Type = LW->getType(Node->GetType());
 
   CheckVariableRedefinition(Node->TheDeclaratorList);
 
-  if (Current->IsTop()) {
-    // TODO : Handle Array
-    // TODO : Global Variable initialize to 0
+  if (Current->isTop()) {
     for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
       Constant *TheInitializer = nullptr;
       if (Node->TheInitializerList[i]) {
         // Have initializer
+        TheValue = nullptr;
         Visit(Node->TheInitializerList[i].get());
         if (!TheValue) {
           panic("Failed to generate the initializer");
@@ -75,6 +74,8 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
         if (!TheInitializer) {
           panic("Failed to generate the initializer, static_cast");
         }
+      } else {
+        TheInitializer = LW->getDefaultConstant(Type);
       }
       auto Name = Node->TheDeclaratorList[i]->Name;
       auto *GV = new GlobalVariable(*LW->Mod.get(), Type, false,
@@ -113,7 +114,7 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
 }
 
 auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
-  if (!Current->IsTop()) {
+  if (!Current->isTop()) {
     panic("Nested function is not allowed");
     assert(0 && "UNREACHABLE");
     return;
@@ -135,11 +136,11 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
   // Prototype
   std::vector<llvm::Type *> TypeList;
   std::vector<std::string> NameList;
-  auto *RetType = LW->GetType(Node->Type);
+  auto *RetType = LW->getType(Node->Type);
   for (const auto &ParmVar : Node->VarList) {
     auto Type = ParmVar->GetType();
     const auto &VarName = ParmVar->GetName();
-    TypeList.emplace_back(LW->GetType(Type));
+    TypeList.emplace_back(LW->getType(Type));
     NameList.emplace_back(VarName);
   }
 
@@ -192,7 +193,6 @@ auto CodeGenVisitor::Visit(Expr *Node) -> void { Node->accept(this); }
 
 auto CodeGenVisitor::Visit(VariableExpr *Node) -> void {
   // TODO Handle Array
-  // TODO Name shadowing
   const auto &VarName = Node->GetName();
   auto *Val = Current->Find(VarName);
   if (!Val) {
@@ -208,7 +208,7 @@ auto CodeGenVisitor::Visit(VariableExpr *Node) -> void {
 }
 
 auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
-  // TODO Check Args
+  // TODO Check Args Type ???
   auto *Val = Current->Find(Node->Callee);
   auto *TheFunction = static_cast<Function *>(Val);
   if (!Val) {
@@ -265,7 +265,7 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
   if (!TheValue) {
     panic("Failed to generate if condition");
   }
-  auto *CondV = LW->ConvertToBool(TheValue, "ifcond");
+  auto *CondV = LW->convertToBool(TheValue, "ifcond");
   if (!CondV) {
     panic("Failed to convert to bool");
   }

@@ -5,6 +5,7 @@
 #include "llvm/IR/LLVMContext.h"
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/APInt.h>
+#include <llvm/IR/Constant.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Type.h>
@@ -27,7 +28,7 @@ public:
     Builder = std::make_unique<IRBuilder<>>(*Ctx);
   }
 
-  auto GetType(DataType Type) -> llvm::Type * {
+  auto getType(DataType Type) -> llvm::Type * {
     switch (Type) {
     case DataType::Int:
       return llvm::Type::getInt32Ty(*Ctx);
@@ -52,7 +53,7 @@ public:
     return TmpB.CreateAlloca(Type, ArraySize, Name.c_str());
   }
 
-  auto ConvertToBool(Value *Val, std::string Name = "") -> Value * {
+  auto convertToBool(Value *Val, std::string Name = "") -> Value * {
 
     auto Type = Val->getType();
     if (Type->isIntegerTy()) {
@@ -67,6 +68,15 @@ public:
     }
     panic("Unknown conversion to bool");
     return nullptr;
+  }
+
+  auto getDefaultConstant(llvm::Type *Type) -> llvm::Constant * {
+    if (Type->isIntegerTy()) {
+      auto W = Type->getIntegerBitWidth();
+      return ConstantInt::get(*Ctx, APInt(W, 0));
+    } else {
+      return ConstantFP::get(*Ctx, APFloat(0.0));
+    }
   }
 };
 } // namespace Minic

@@ -6,12 +6,11 @@
 #include "Visitor.hh"
 
 #include <fstream>
-#include <iostream>
 #include <llvm/Support/raw_ostream.h>
 
 using namespace antlr4;
 
-// TODO Comment
+// TODO LValue and RValue
 // TODO implicit conversion (float -> int) (int -> float)
 auto main(int argc, char *argv[]) -> int {
   // TODO  Parse Command Line Arguments
@@ -38,5 +37,6 @@ auto main(int argc, char *argv[]) -> int {
   Printer.Visit(AST);
   Minic::CodeGenVisitor CGV;
   CGV.Visit(AST);
+  llvm::outs() << "IR:\n";
   CGV.LW->Mod->print(llvm::outs(), nullptr);
 }

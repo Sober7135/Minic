@@ -134,16 +134,19 @@ public:
 /// BinayExpr
 ///   ::= Expr BinayOperator Expr
 class BinaryExpr : public Expr {
-  BinayOperator TheBinaryOperator;
+protected:
+  BinaryOperator TheBinaryOperator;
   std::unique_ptr<Expr> LHS, RHS;
 
 public:
-  BinaryExpr(BinayOperator TheBinaryOperator, std::unique_ptr<Expr> LHS,
+  BinaryExpr(BinaryOperator TheBinaryOperator, std::unique_ptr<Expr> LHS,
              std::unique_ptr<Expr> RHS)
       : TheBinaryOperator(TheBinaryOperator), LHS(std::move(LHS)),
         RHS(std::move(RHS)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "BinayExpr"; }
+
+  friend class CodeGenVisitor;
 };
 
 /// UnaryExpr

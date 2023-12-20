@@ -1,6 +1,9 @@
 int x = 10;
 
-int main() {
-  int x = 8;
-  x = 114514;
+int test() {
+  int x = 10;
+  {
+    int x = 100;
+  }
+  return x;
 }

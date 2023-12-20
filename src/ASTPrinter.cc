@@ -14,6 +14,7 @@ namespace Minic {
 
 /* =============================== ASTPrinter =============================== */
 auto ASTPrinter::Visit(const Program &TheProgram) -> void {
+  Out << "AST:\n";
   for (const auto &TheDeclaration : TheProgram) {
     Visit(TheDeclaration.get());
   }

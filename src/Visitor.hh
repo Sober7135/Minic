@@ -121,8 +121,20 @@ class CodeGenVisitor : public ASTVisitor {
 
 public:
   std::unique_ptr<LLVMWrapper> LW;
+  
+  bool IsFunctionScope = false;
 
 private:
+  // This is only used in function. Since we need to define parameters in child
+  // scope, we need to generate child scope when Visit FunctionDecl, but since
+  // CompoundStmt needs to create child scope by default, we need three states.
+  // 
+  // enum class State {
+  //   Normal,
+  //   FirstScopeInFunc,
+  //   NotFirstScopeInFunc,
+  // };
+
   std::unique_ptr<Scope> TheScope;
   Scope *Current;
   llvm::Value *TheValue = nullptr;

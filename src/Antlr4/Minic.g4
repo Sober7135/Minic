@@ -311,3 +311,10 @@ fragment Ascii
 	  ;
 
 
+BlockComment
+    : '/*' .*? '*/' -> skip
+    ;
+
+LineComment
+    : '//' ~[\r\n]* -> skip
+    ;

@@ -1,6 +1,7 @@
 #include "AST.hh"
 #include "Context.hh"
 #include "Log.hh"
+#include "Type.hh"
 #include "Visitor.hh"
 
 #include <cassert>
@@ -163,6 +164,7 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
 
   auto Child = std::make_unique<Scope>(Current);
   Current = Child.get();
+  IsFunctionScope = true;
 
   for (auto &Arg : F->args()) {
     // Create an alloca for this variable
@@ -177,9 +179,6 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
   // Finish off the function
   llvm::verifyFunction(*F);
   TheValue = F;
-
-  // Reset Current
-  Current = Child->getParent();
 
   Current->Add(Node->Name, F);
   return;
@@ -201,8 +200,10 @@ auto CodeGenVisitor::Visit(VariableExpr *Node) -> void {
     panic(VarName + " is not a variable stored in stack");
   }
 
+  // maybe redundant
   TheValue = LW->Builder->CreateLoad(Casted->getAllocatedType(), Casted,
                                      VarName.c_str());
+  Addr = Casted;
 }
 
 auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
@@ -235,7 +236,63 @@ auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
 
 auto CodeGenVisitor::Visit(UnaryExpr *Node) -> void {}
 
-auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {}
+auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
+  auto BinOp = Node->TheBinaryOperator;
+
+  TheValue = nullptr;
+  Visit(Node->LHS.get());
+  if (!TheValue) {
+    panic("Failed to generate IR of LHS");
+  }
+  auto LHS = Addr;
+
+  TheValue = nullptr;
+  Visit(Node->RHS.get());
+  if (!TheValue) {
+    panic("Failed to generate IR of LHS");
+  }
+  auto RHS = TheValue;
+
+  // '='
+  // TODO Check LValue
+  if (BinOp == BinaryOperator::Assign) {
+    LW->Builder->CreateStore(RHS, LHS);
+    return;
+  }
+
+  // cast
+  // int -> float,  (1.1 + 4)
+  //
+  switch (BinOp) {
+  case Minic::BinaryOperator::Assign:
+    panic("'=' have been handled above");
+    break;
+  case Minic::BinaryOperator::Plus:
+    break;
+  case Minic::BinaryOperator::Minus:
+    break;
+  case Minic::BinaryOperator::Multiply:
+    break;
+  case Minic::BinaryOperator::Divide:
+    break;
+  case Minic::BinaryOperator::And:
+    break;
+  case Minic::BinaryOperator::Or:
+    break;
+  case Minic::BinaryOperator::Less:
+    break;
+  case Minic::BinaryOperator::LessEqual:
+    break;
+  case Minic::BinaryOperator::Greater:
+    break;
+  case Minic::BinaryOperator::GreaterEqual:
+    break;
+  case Minic::BinaryOperator::Equal:
+    break;
+  case Minic::BinaryOperator::NotEqual:
+    break;
+  }
+}
 
 auto CodeGenVisitor::Visit(LiteralExpr *Node) -> void { Node->accept(this); }
 
@@ -286,10 +343,6 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
   // Emit then value.
   LW->Builder->SetInsertPoint(ThenBB);
 
-  // Scope
-  auto Child = std::make_unique<Scope>(Current);
-  Current = Child.get();
-
   Visit(Node->IfBody.get());
   LW->Builder->CreateBr(MergeBB);
 
@@ -297,9 +350,6 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
   TheFunction->insert(TheFunction->end(), ElseBB);
   LW->Builder->SetInsertPoint(ElseBB);
 
-  // Scope
-  Child = std::make_unique<Scope>(Current->getParent());
-  Current = Child.get();
   Visit(Node->ElseBody.get());
   LW->Builder->CreateBr(MergeBB);
 
@@ -307,7 +357,6 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
   TheFunction->insert(TheFunction->end(), MergeBB);
 
   LW->Builder->SetInsertPoint(MergeBB);
-  Current = Child->getParent();
 }
 
 auto CodeGenVisitor::Visit(WhileStmt *Node) -> void {}
@@ -329,11 +378,21 @@ auto CodeGenVisitor::Visit(VarDeclStmt *Node) -> void {
   Visit(Node->TheVarDecl.get());
 }
 
-// FIXME CompoundStmt inside CompoundStmt
 auto CodeGenVisitor::Visit(CompoundStmt *Node) -> void {
+  std::unique_ptr<Scope> Child = nullptr;
+  if (!IsFunctionScope) {
+    // IsFunctionScope false
+    Child = std::make_unique<Scope>(Current);
+    Current = Child.get();
+  } else {
+    IsFunctionScope = false;
+  }
+
   for (const auto &Stmt : Node->Statements) {
     Visit(Stmt.get());
   }
+
+  Current = Current->getParent();
 }
 
 auto CodeGenVisitor::Visit(Declarator *Node) -> void {}

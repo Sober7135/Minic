@@ -25,18 +25,18 @@ namespace Minic {
 
 /* =============================== CodeGenVisitor =========================== */
 /* ================================== Private =============================== */
-void CodeGenVisitor::CheckVariableRedefinition(
+void CodeGenVisitor::checkVariableRedefinition(
     const std::unique_ptr<Declarator> &D) {
-  auto *Ret = Current->FindCurrent(D->GetName());
+  auto *Ret = Current->FindCurrent(D->getName());
   if (Ret) {
-    panic("Redefinition of " + D->GetName());
+    panic("Redefinition of " + D->getName());
   }
 }
 
-void CodeGenVisitor::CheckVariableRedefinition(
+void CodeGenVisitor::checkVariableRedefinition(
     const std::vector<std::unique_ptr<Declarator>> &DList) {
   for (const auto &D : DList) {
-    CheckVariableRedefinition(D);
+    checkVariableRedefinition(D);
   }
 }
 
@@ -56,9 +56,9 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
   // TODO : Check LiteralExpr Type `int x = 1.3;`
   // TODO : Handle Array
   /// DataType Identifier = Expr
-  auto *Type = LW->getType(Node->GetType());
+  auto *Type = LW->getType(Node->getType());
 
-  CheckVariableRedefinition(Node->TheDeclaratorList);
+  checkVariableRedefinition(Node->TheDeclaratorList);
 
   if (Current->isTop()) {
     for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
@@ -138,8 +138,8 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
   std::vector<std::string> NameList;
   auto *RetType = LW->getType(Node->Type);
   for (const auto &ParmVar : Node->VarList) {
-    auto Type = ParmVar->GetType();
-    const auto &VarName = ParmVar->GetName();
+    auto Type = ParmVar->getType();
+    const auto &VarName = ParmVar->getName();
     TypeList.emplace_back(LW->getType(Type));
     NameList.emplace_back(VarName);
   }
@@ -151,7 +151,7 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
     (F->args().begin() + i)->setName(NameList[i]);
   }
 
-  if (Node->IsPrototype()) {
+  if (Node->isPrototype()) {
     TheValue = F;
     Current->Add(Node->Name, F);
     return;
@@ -193,7 +193,7 @@ auto CodeGenVisitor::Visit(Expr *Node) -> void { Node->accept(this); }
 
 auto CodeGenVisitor::Visit(VariableExpr *Node) -> void {
   // TODO Handle Array
-  const auto &VarName = Node->GetName();
+  const auto &VarName = Node->getName();
   auto *Val = Current->Find(VarName);
   if (!Val) {
     panic("Unknown Variable " + VarName);

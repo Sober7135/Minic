@@ -43,7 +43,7 @@ auto ASTPrinter::Visit(FunctionDecl *Node) -> void {
   // Top Level
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
-  if (!Node->IsPrototype()) {
+  if (!Node->isPrototype()) {
     I += 2;
     // CompoundStmt
     Visit(Node->Body.get());

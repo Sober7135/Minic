@@ -30,14 +30,14 @@ class Declarator : public ASTNode {
 protected:
   std::string Name;
   std::vector<int> Dimension{}; // when is not array, it should be empty
-  bool _IsArray = false;
+  bool IsArray = false;
 
 public:
   explicit Declarator(std::string Name) : Name(std::move(Name)) {}
   Declarator(std::string Name, std::vector<int> &&Dimension)
-      : Name(std::move(Name)), Dimension(Dimension), _IsArray(true) {}
-  [[nodiscard]] auto IsArray() const -> bool { return _IsArray; }
-  [[nodiscard]] auto GetName() const -> const std::string & { return Name; }
+      : Name(std::move(Name)), Dimension(Dimension), IsArray(true) {}
+  [[nodiscard]] auto isArray() const -> bool { return IsArray; }
+  [[nodiscard]] auto getName() const -> const std::string & { return Name; }
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override;
 
@@ -45,7 +45,7 @@ public:
 };
 
 class Initializer : ASTNode {
-  bool _IsLeaf;
+  bool IsLeaf;
   std::unique_ptr<Expr> TheExpr; // nullptr if is not leaf node
   std::vector<std::unique_ptr<Initializer>> Children;
 
@@ -53,9 +53,9 @@ public:
   explicit Initializer(std::unique_ptr<Expr> TheExpr,
                        std::vector<std::unique_ptr<Initializer>> &&Children =
                            std::vector<std::unique_ptr<Initializer>>{})
-      : _IsLeaf(Children.empty()), TheExpr(std::move(TheExpr)),
+      : IsLeaf(Children.empty()), TheExpr(std::move(TheExpr)),
         Children(std::move(Children)) {}
-  [[nodiscard]] auto IsLeaf() const -> bool { return _IsLeaf; }
+  [[nodiscard]] auto isLeaf() const -> bool { return IsLeaf; }
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override;
 
@@ -94,7 +94,8 @@ public:
   explicit operator std::string() override {
     return "VarDecl " + DataType2String[Type];
   }
-  [[nodiscard]] auto GetType() const -> DataType { return Type; }
+  [[nodiscard]] auto getType() const -> DataType { return Type; }
+
   friend class ASTPrinter;
   friend class CodeGenVisitor;
 };
@@ -106,7 +107,7 @@ class VariableExpr : public Expr {
 
 public:
   explicit VariableExpr(std::string Name) : Name(std::move(Name)) {}
-  [[nodiscard]] auto GetName() const -> const std::string & { return Name; }
+  [[nodiscard]] auto getName() const -> const std::string & { return Name; }
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "VariableExpr"; }
 };
@@ -329,9 +330,9 @@ protected:
 public:
   ParmVarDecl(DataType Type, std::unique_ptr<Declarator> TheDeclarator)
       : Declaration(Type), TheDeclarator(std::move(TheDeclarator)){};
-  [[nodiscard]] auto GetType() const -> DataType { return Type; }
-  [[nodiscard]] auto GetName() const -> const std::string & {
-    return TheDeclarator->GetName();
+  [[nodiscard]] auto getType() const -> DataType { return Type; }
+  [[nodiscard]] auto getName() const -> const std::string & {
+    return TheDeclarator->getName();
   }
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "ParmVarDecl"; }
@@ -353,7 +354,7 @@ public:
       : Declaration(ReturnType), Name(std::move(Name)),
         VarList(std::move(VarList)), Body(std::move(Body)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
-  [[nodiscard]] auto IsPrototype() const -> bool { return Body == nullptr; }
+  [[nodiscard]] auto isPrototype() const -> bool { return Body == nullptr; }
   explicit operator std::string() override;
 
   friend class ASTPrinter;

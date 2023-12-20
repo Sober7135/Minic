@@ -128,8 +128,8 @@ private:
   llvm::Value *TheValue = nullptr;
   llvm::AllocaInst *Addr = nullptr;
 
-  void CheckVariableRedefinition(const std::unique_ptr<Declarator> &D);
-  void CheckVariableRedefinition(
+  void checkVariableRedefinition(const std::unique_ptr<Declarator> &D);
+  void checkVariableRedefinition(
       const std::vector<std::unique_ptr<Declarator>> &DList);
 
 public:

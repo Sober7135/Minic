@@ -12,7 +12,7 @@ Declarator::operator std::string() {
 }
 
 Initializer::operator std::string() {
-  if (_IsLeaf) {
+  if (IsLeaf) {
     // Is Leaf
     return "  " + std::string(*TheExpr);
   }
@@ -24,7 +24,7 @@ Initializer::operator std::string() {
 }
 
 FunctionDecl::operator std::string() {
-  auto IsPrototype_ = IsPrototype();
+  auto IsPrototype_ = isPrototype();
   if (IsPrototype_) {
     return "FunctionPrototype " + Name;
   }

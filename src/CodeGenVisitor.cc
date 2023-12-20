@@ -201,9 +201,9 @@ auto CodeGenVisitor::Visit(VariableExpr *Node) -> void {
   }
 
   // maybe redundant
-  TheValue = LW->Builder->CreateLoad(Casted->getAllocatedType(), Casted,
-                                     VarName.c_str());
-  Addr = Casted;
+  // TheValue = LW->Builder->CreateLoad(Casted->getAllocatedType(), Casted,
+  //  VarName.c_str());
+  TheValue = Casted;
 }
 
 auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
@@ -325,7 +325,19 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
   if (!TheValue) {
     panic("Failed to generate if condition");
   }
-  auto *CondV = LW->convertToBool(TheValue, "ifcond");
+  auto *CondV = TheValue;
+  // Check LValue
+  if (Node->Cond->isLValue()) {
+    auto *Casted = llvm::dyn_cast<llvm::AllocaInst>(CondV);
+    auto *Var = dynamic_cast<VariableExpr *>(Node->Cond.get());
+    if (!Casted) {
+      panic("just panic");
+    }
+    CondV = LW->Builder->CreateLoad(Casted->getAllocatedType(), Casted,
+                                    Var->getName());
+  }
+
+  CondV = LW->convertToBool(CondV, "ifcond");
   if (!CondV) {
     panic("Failed to convert to bool");
   }

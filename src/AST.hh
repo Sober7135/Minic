@@ -24,7 +24,13 @@ public:
 ///   ::= BinaryExpr
 ///   ::= UnaryExpr
 ///   ::=
-class Expr : public ASTNode {};
+class Expr : public ASTNode {
+protected:
+  bool IsLValue = false;
+
+public:
+  [[nodiscard]] auto isLValue() const -> bool { return IsLValue; }
+};
 
 class Declarator : public ASTNode {
 protected:
@@ -106,7 +112,10 @@ class VariableExpr : public Expr {
   std::string Name;
 
 public:
-  explicit VariableExpr(std::string Name) : Name(std::move(Name)) {}
+  explicit VariableExpr(std::string Name) : Name(std::move(Name)) {
+    IsLValue = true;
+  }
+
   [[nodiscard]] auto getName() const -> const std::string & { return Name; }
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "VariableExpr"; }
@@ -152,6 +161,7 @@ public:
 /// UnaryExpr
 ///   ::= UnaryOperator Expr
 class UnaryExpr : public Expr {
+protected:
   UnaryOperator TheUnaryOperator;
   std::unique_ptr<Expr> TheExpr;
 
@@ -160,6 +170,8 @@ public:
       : TheUnaryOperator(UnaryOperator), TheExpr(std::move(Expression)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "UnaryExpr"; }
+
+  friend class CodeGenVisitor;
 };
 
 /// Literal Expression

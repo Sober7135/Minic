@@ -1,10 +1,12 @@
 int main() {
   int x = 6;
   if (x) {
-    int kk = 0;
-    kk;
+    int x = 0;
+    return 1;
   } else {
-    int yy = 0;
-    yy;
+    int x = 0;
+    return 2;
+    int y = 0;
   }
+  return 0;
 }

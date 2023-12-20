@@ -2,9 +2,7 @@
 #pragma once
 
 #include <llvm/IR/Value.h>
-
 #include <map>
-#include <utility>
 
 namespace Minic {
 class Scope {
@@ -19,7 +17,7 @@ public:
     SymbolTable[Name] = Val;
   }
 
-  [[nodiscard]] auto GetParent() const -> Scope * { return Parent; }
+  [[nodiscard]] auto getParent() const -> Scope * { return Parent; }
 
   [[nodiscard]] auto FindCurrent(const std::string &Name) -> llvm::Value * {
     llvm::Value *Ret = nullptr;
@@ -30,7 +28,7 @@ public:
   [[nodiscard]] auto Find(const std::string &Name) -> llvm::Value * {
     llvm::Value *Ret = nullptr;
     Ret = FindCurrent(Name);
-    if (Parent) {
+    if (Parent && !Ret) {
       return Parent->Find(Name);
     }
 

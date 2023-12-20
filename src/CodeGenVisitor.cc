@@ -174,14 +174,12 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
 
   TheValue = nullptr;
   Visit(Node->Body.get());
-  if (TheValue) {
-    // Finish off the function
-    llvm::verifyFunction(*F);
-    TheValue = F;
-  }
+  // Finish off the function
+  llvm::verifyFunction(*F);
+  TheValue = F;
 
   // Reset Current
-  Current = Child->GetParent();
+  Current = Child->getParent();
 
   Current->Add(Node->Name, F);
   return;
@@ -253,7 +251,12 @@ auto CodeGenVisitor::Visit(LiteralCharExpr *Node) -> void {
   TheValue = ConstantInt::get(*LW->Ctx.get(), APInt(8, Node->Char));
 }
 
-auto CodeGenVisitor::Visit(Statement *Node) -> void { Node->accept(this); }
+auto CodeGenVisitor::Visit(Statement *Node) -> void {
+  if (!Node) {
+    return;
+  }
+  Node->accept(this);
+}
 
 auto CodeGenVisitor::Visit(ExprStmt *Node) -> void {
   Visit(Node->TheExpr.get());
@@ -283,6 +286,10 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
   // Emit then value.
   LW->Builder->SetInsertPoint(ThenBB);
 
+  // Scope
+  auto Child = std::make_unique<Scope>(Current);
+  Current = Child.get();
+
   Visit(Node->IfBody.get());
   LW->Builder->CreateBr(MergeBB);
 
@@ -290,11 +297,17 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
   TheFunction->insert(TheFunction->end(), ElseBB);
   LW->Builder->SetInsertPoint(ElseBB);
 
+  // Scope
+  Child = std::make_unique<Scope>(Current->getParent());
+  Current = Child.get();
   Visit(Node->ElseBody.get());
   LW->Builder->CreateBr(MergeBB);
 
   // Emit merge block.
   TheFunction->insert(TheFunction->end(), MergeBB);
+
+  LW->Builder->SetInsertPoint(MergeBB);
+  Current = Child->getParent();
 }
 
 auto CodeGenVisitor::Visit(WhileStmt *Node) -> void {}

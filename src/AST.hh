@@ -216,7 +216,7 @@ class Statement : public ASTNode {};
 
 /// Compound Statement
 ///   ::= CompoundStmt | Statement
-class CompoundStmt : public ASTNode {
+class CompoundStmt : public Statement {
 protected:
   std::vector<std::unique_ptr<Statement>> Statements;
 
@@ -251,11 +251,11 @@ class IfStmt : public Statement {
 protected:
   std::unique_ptr<Expr> Cond;
   // Else Body could be nullptr because Else is optional
-  std::unique_ptr<CompoundStmt> IfBody, ElseBody;
+  std::unique_ptr<Statement> IfBody, ElseBody;
 
 public:
-  IfStmt(std::unique_ptr<Expr> Cond, std::unique_ptr<CompoundStmt> IfBody,
-         std::unique_ptr<CompoundStmt> ElseBody = nullptr)
+  IfStmt(std::unique_ptr<Expr> Cond, std::unique_ptr<Statement> IfBody,
+         std::unique_ptr<Statement> ElseBody = nullptr)
       : Cond(std::move(Cond)), IfBody(std::move(IfBody)),
         ElseBody(std::move(ElseBody)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
@@ -270,10 +270,10 @@ public:
 class WhileStmt : public Statement {
 protected:
   std::unique_ptr<Expr> Cond;
-  std::unique_ptr<CompoundStmt> Body;
+  std::unique_ptr<Statement> Body;
 
 public:
-  WhileStmt(std::unique_ptr<Expr> Cond, std::unique_ptr<CompoundStmt> Body)
+  WhileStmt(std::unique_ptr<Expr> Cond, std::unique_ptr<Statement> Body)
       : Cond(std::move(Cond)), Body(std::move(Body)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "WhileStmt"; }

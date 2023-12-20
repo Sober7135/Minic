@@ -12,6 +12,7 @@
 using namespace antlr4;
 
 // TODO Comment
+// TODO implicit conversion (float -> int) (int -> float)
 auto main(int argc, char *argv[]) -> int {
   // TODO  Parse Command Line Arguments
   std::ifstream Stream(argv[1]);
@@ -34,7 +35,7 @@ auto main(int argc, char *argv[]) -> int {
   TheASTBuilder.Build();
   auto &AST = TheASTBuilder.AST();
   auto Printer = Minic::ASTPrinter(llvm::outs());
-  // Printer.Visit(AST);
+  Printer.Visit(AST);
   Minic::CodeGenVisitor CGV;
   CGV.Visit(AST);
   CGV.LW->Mod->print(llvm::outs(), nullptr);

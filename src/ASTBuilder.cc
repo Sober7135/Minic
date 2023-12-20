@@ -196,7 +196,8 @@ auto ASTBuilder::visitFunctionDecl(MinicParser::FunctionDeclContext *ctx)
 
   // Get VisitedCompoundStmt
   visitCompoundStmt(ctx->compoundStmt());
-  auto TheCompoundStmt = std::move(VisitedCompoundStmt);
+  std::unique_ptr<CompoundStmt> TheCompoundStmt(
+      dynamic_cast<CompoundStmt *>(VisitedStmt.release()));
 
   auto TheFunction = std::make_unique<FunctionDecl>(
       TheDataType, Name, std::move(TheParmVarList), std::move(TheCompoundStmt));
@@ -243,7 +244,7 @@ auto ASTBuilder::visitParmVarDecl(MinicParser::ParmVarDeclContext *ctx)
 auto ASTBuilder::visitCompoundStmt(MinicParser::CompoundStmtContext *ctx)
     -> std::any {
   if (!ctx) {
-    VisitedCompoundStmt = nullptr;
+    VisitedStmt = nullptr;
     return nullptr;
   }
 
@@ -253,7 +254,7 @@ auto ASTBuilder::visitCompoundStmt(MinicParser::CompoundStmtContext *ctx)
     visitStatement(TheStmtCtx);
     TheStmts.emplace_back(std::move(VisitedStmt));
   }
-  VisitedCompoundStmt = std::make_unique<CompoundStmt>(std::move(TheStmts));
+  VisitedStmt = std::make_unique<CompoundStmt>(std::move(TheStmts));
 
   return nullptr;
 }
@@ -264,17 +265,17 @@ auto ASTBuilder::visitIfStmt(MinicParser::IfStmtContext *ctx) -> std::any {
   visitExpr(ctx->expr());
   auto Cond = std::move(VisitedExpr);
 
-  std::unique_ptr<CompoundStmt> IfBody = nullptr, ElseBody = nullptr;
+  std::unique_ptr<Statement> IfBody = nullptr, ElseBody = nullptr;
 
-  // Get VisitedCompoundStmt
-  visitCompoundStmt(ctx->compoundStmt(0));
-  IfBody = std::move(VisitedCompoundStmt);
+  // Get VisitedStmt
+  visitStatement(ctx->statement(0));
+  IfBody = std::move(VisitedStmt);
 
-  if (ctx->compoundStmt().size() == 2) {
+  if (ctx->statement().size() == 2) {
     // Has `else`
     // Get VisitedCompoundStmt
-    visitCompoundStmt(ctx->compoundStmt(1));
-    ElseBody = std::move(VisitedCompoundStmt);
+    visitStatement(ctx->statement(1));
+    ElseBody = std::move(VisitedStmt);
   }
   VisitedStmt = std::make_unique<IfStmt>(std::move(Cond), std::move(IfBody),
                                          std::move(ElseBody));
@@ -289,8 +290,8 @@ auto ASTBuilder::visitWhileStmt(MinicParser::WhileStmtContext *ctx)
   auto Cond = std::move(VisitedExpr);
 
   // Get VisitedCompoundStmt
-  visitCompoundStmt(ctx->compoundStmt());
-  auto Body = std::move(VisitedCompoundStmt);
+  visitStatement(ctx->statement());
+  auto Body = std::move(VisitedStmt);
 
   VisitedStmt = std::make_unique<WhileStmt>(std::move(Cond), std::move(Body));
 

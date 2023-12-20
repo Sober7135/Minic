@@ -82,19 +82,20 @@ statement
     | returnStmt
     | breakStmt
     | continueStmt
+    | compoundStmt
     ;
 
 ifStmt
-    : If LeftParen expr RightParen compoundStmt (Else compoundStmt)?
+    : If LeftParen expr RightParen statement (Else statement)?
     ;
     
 whileStmt
-    : While LeftParen expr RightParen compoundStmt
+    : While LeftParen expr RightParen statement
     ;
 
 // removing forStmt supporting, because if we support for, we must deal with left value and assignment expression
 // forStmt
-//     : For LeftParen expr Semicolon expr Semicolon expr RightParen compoundStmt
+//     : For LeftParen expr Semicolon expr Semicolon expr RightParen statement
 //     ;
 
 exprStmt

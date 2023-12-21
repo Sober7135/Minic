@@ -200,9 +200,6 @@ auto CodeGenVisitor::Visit(VariableExpr *Node) -> void {
     panic(VarName + " is not a variable stored in stack");
   }
 
-  // maybe redundant
-  // TheValue = LW->Builder->CreateLoad(Casted->getAllocatedType(), Casted,
-  //  VarName.c_str());
   TheValue = Casted;
 }
 
@@ -244,7 +241,7 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
   if (!TheValue) {
     panic("Failed to generate IR of LHS");
   }
-  auto LHS = Addr;
+  auto LHS = TheValue;
 
   TheValue = nullptr;
   Visit(Node->RHS.get());
@@ -254,8 +251,10 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
   auto RHS = TheValue;
 
   // '='
-  // TODO Check LValue
   if (BinOp == BinaryOperator::Assign) {
+    if (!Node->LHS->isLValue()) {
+      panic("Assign to RValue is not allowed..");
+    }
     LW->Builder->CreateStore(RHS, LHS);
     return;
   }
@@ -407,7 +406,7 @@ auto CodeGenVisitor::Visit(CompoundStmt *Node) -> void {
   Current = Current->getParent();
 }
 
-auto CodeGenVisitor::Visit(Declarator *Node) -> void {}
+auto CodeGenVisitor::Visit(Declarator *Node) -> void { panic(""); }
 
 auto CodeGenVisitor::Visit(Initializer *Node) -> void {
   if (!Node) {

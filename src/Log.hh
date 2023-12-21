@@ -9,3 +9,7 @@ inline void panic(const std::string &Msg) {
 }
 
 inline void unimplement() { panic("unimplement!"); }
+
+inline void warning(const std::string &Str) {
+  std::cerr << "Warning: " << Str << std::endl;
+}

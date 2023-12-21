@@ -10,16 +10,19 @@
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/DataLayout.h>
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/GlobalValue.h>
 #include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/raw_ostream.h>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace Minic {
@@ -41,7 +44,50 @@ void CodeGenVisitor::checkVariableRedefinition(
   }
 }
 
+auto CodeGenVisitor::handleBinayExprConversion(Value *&LHS, Value *&RHS,
+                                               bool isLValue) -> void {
+  // We have only 2 types, one is float, one is integer
+  // But we have 2 type of integer, one is char (aka 8 bit int), one is int (aka
+  // 32 bit int)
+  if (isLValue) {
+    LW->implicitConvert(RHS, LHS->getType());
+  }
+
+  auto l = LHS->getType();
+  auto r = RHS->getType();
+
+  unsigned flag = 0;
+  flag |= l->isFloatTy();
+  flag |= ((unsigned)r->isFloatTy() << (unsigned)1);
+
+  switch (flag) {
+  case 0b00:
+    // both are int
+    if (l->getIntegerBitWidth() > r->getIntegerBitWidth()) {
+      RHS = LW->Builder->CreateIntCast(RHS, l, false, "towiderint");
+    } else {
+      LHS = LW->Builder->CreateIntCast(LHS, r, false, "towiderint");
+    }
+    break;
+  case 0b01:
+    // LHS is float
+    RHS = LW->Builder->CreateSIToFP(RHS, l, "inttofloat");
+    break;
+  case 0b10:
+    // RHS is float
+    LHS = LW->Builder->CreateSIToFP(LHS, r, "inttofloat");
+    break;
+  case 0b11:
+    // both are float
+    // skip
+    break;
+  default:
+    panic("Unknown Type, flag: " + std::to_string(flag));
+  }
+}
+
 /* =============================== CodeGenVisitor =========================== */
+/* =================================== Public =============================== */
 auto CodeGenVisitor::Visit(const Program &TheProgram) -> void {
   for (const auto &Decl : TheProgram) {
     Visit(Decl.get());
@@ -54,12 +100,12 @@ auto CodeGenVisitor::Visit(Declaration *Node) -> void { Node->accept(this); }
 
 /// https://stackoverflow.com/questions/45471470/how-to-generate-code-for-initializing-global-variables-with-non-const-values-in
 auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
+  checkVariableRedefinition(Node->TheDeclaratorList);
+
   // TODO : Check LiteralExpr Type `int x = 1.3;`
   // TODO : Handle Array
   /// DataType Identifier = Expr
   auto *Type = LW->getType(Node->getType());
-
-  checkVariableRedefinition(Node->TheDeclaratorList);
 
   if (Current->isTop()) {
     for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
@@ -71,6 +117,7 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
         if (!TheValue) {
           panic("Failed to generate the initializer");
         }
+        LW->implicitConvert(TheValue, Type);
         TheInitializer = static_cast<Constant *>(TheValue);
         if (!TheInitializer) {
           panic("Failed to generate the initializer, static_cast");
@@ -98,6 +145,7 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
       if (!TheValue) {
         panic("Failed to generate the initializer");
       }
+      LW->implicitConvert(TheValue, Type);
       TheInitializer = static_cast<Constant *>(TheValue);
       if (!TheInitializer) {
         panic("Failed to generate the initializer, static_cast");
@@ -250,12 +298,18 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
   }
   auto RHS = TheValue;
 
+  // TODO CONVERSION
+  // `int x = 9.0;` => convert to `int`
+  // `9 + 9.00` => convert to `float`
+
   // '='
   if (BinOp == BinaryOperator::Assign) {
     if (!Node->LHS->isLValue()) {
       panic("Assign to RValue is not allowed..");
     }
     LW->Builder->CreateStore(RHS, LHS);
+    // Value of assignment expression is RHS
+    TheValue = RHS;
     return;
   }
 

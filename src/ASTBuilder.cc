@@ -1,7 +1,6 @@
 #include "ASTBuilder.hh"
 #include "AST.hh"
 #include "MinicParser.h"
-#include "MinicVisitor.h"
 #include "Type.hh"
 #include "tree/TerminalNode.h"
 
@@ -173,7 +172,7 @@ auto ASTBuilder::visitLiteral(MinicParser::LiteralContext *ctx) -> std::any {
     return nullptr;
   } else {
     VisitedExpr = std::make_unique<LiteralCharExpr>(
-        (char)(ctx->LiteralFloat()->getText()[0]));
+        (char)(ctx->LiteralChar()->getText()[1]));
     return nullptr;
   }
   assert(0 && "Unknown Literal Type");

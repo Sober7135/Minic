@@ -8,6 +8,7 @@
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Instruction.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 
@@ -76,6 +77,38 @@ public:
       return ConstantInt::get(*Ctx, APInt(W, 0));
     } else {
       return ConstantFP::get(*Ctx, APFloat(0.0));
+    }
+  }
+
+  auto implicitConvert(llvm::Value *&Val, Type *DestTy) -> void {
+    auto ValType = Val->getType();
+
+    unsigned flag = 0;
+    flag |= ValType->isFloatTy();
+    flag |= ((unsigned)DestTy->isFloatTy() << (unsigned)1);
+
+    // just Convert to LHS
+    switch (flag) {
+    case 0b00:
+      // both are int
+      Val = Builder->CreateIntCast(Val, DestTy, false, "inttoint");
+      break;
+    case 0b01:
+      // Val is integer
+      // DestTy is float
+      Val = Builder->CreateSIToFP(Val, DestTy, "inttofloat");
+      break;
+    case 0b10:
+      // Val is float
+      // DestTy is integer
+      Val = Builder->CreateFPToSI(Val, DestTy, "floattoint");
+      break;
+    case 0b11:
+      // both are float
+      // skip
+      break;
+    default:
+      panic("Unknown Type, flag: " + std::to_string(flag));
     }
   }
 };

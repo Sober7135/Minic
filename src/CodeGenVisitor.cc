@@ -3,6 +3,7 @@
 #include "Log.hh"
 #include "Type.hh"
 #include "Visitor.hh"
+#include "Wrapper.hh"
 
 #include <cassert>
 #include <cstddef>
@@ -20,6 +21,7 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/Support/Casting.h>
 #include <llvm/Support/raw_ostream.h>
 #include <memory>
 #include <string>
@@ -41,48 +43,6 @@ void CodeGenVisitor::checkVariableRedefinition(
     const std::vector<std::unique_ptr<Declarator>> &DList) {
   for (const auto &D : DList) {
     checkVariableRedefinition(D);
-  }
-}
-
-auto CodeGenVisitor::handleBinayExprConversion(Value *&LHS, Value *&RHS,
-                                               bool isLValue) -> void {
-  // We have only 2 types, one is float, one is integer
-  // But we have 2 type of integer, one is char (aka 8 bit int), one is int (aka
-  // 32 bit int)
-  if (isLValue) {
-    LW->implicitConvert(RHS, LHS->getType());
-  }
-
-  auto l = LHS->getType();
-  auto r = RHS->getType();
-
-  unsigned flag = 0;
-  flag |= l->isFloatTy();
-  flag |= ((unsigned)r->isFloatTy() << (unsigned)1);
-
-  switch (flag) {
-  case 0b00:
-    // both are int
-    if (l->getIntegerBitWidth() > r->getIntegerBitWidth()) {
-      RHS = LW->Builder->CreateIntCast(RHS, l, false, "towiderint");
-    } else {
-      LHS = LW->Builder->CreateIntCast(LHS, r, false, "towiderint");
-    }
-    break;
-  case 0b01:
-    // LHS is float
-    RHS = LW->Builder->CreateSIToFP(RHS, l, "inttofloat");
-    break;
-  case 0b10:
-    // RHS is float
-    LHS = LW->Builder->CreateSIToFP(LHS, r, "inttofloat");
-    break;
-  case 0b11:
-    // both are float
-    // skip
-    break;
-  default:
-    panic("Unknown Type, flag: " + std::to_string(flag));
   }
 }
 
@@ -267,12 +227,19 @@ auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
 
   // Type checking ???
   std::vector<llvm::Value *> ArgVs;
-  for (const auto &Arg : Args) {
+
+  for (size_t i = 0, end = Args.size(); i != end; i++) {
+    auto *DestTy = (TheFunction->args().begin() + i)->getType();
     TheValue = nullptr;
-    Visit(Arg.get());
+    Visit(Args[i].get());
+    if (Args[i]->isLValue()) {
+      auto *Casted = llvm::dyn_cast<llvm::AllocaInst>(TheValue);
+      TheValue = LW->Builder->CreateLoad(Casted->getAllocatedType(), Casted);
+    }
     if (!TheValue) {
       panic("Failed to generate " + Node->Callee + "'s args");
     }
+    LW->implicitConvert(TheValue, DestTy);
     ArgVs.emplace_back(TheValue);
   }
 
@@ -307,6 +274,9 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
     if (!Node->LHS->isLValue()) {
       panic("Assign to RValue is not allowed..");
     }
+    // The LHS is AllocaInst * , use getAllocatedType to get inner Type.
+    LW->implicitConvert(
+        RHS, llvm::dyn_cast<llvm::AllocaInst>(LHS)->getAllocatedType());
     LW->Builder->CreateStore(RHS, LHS);
     // Value of assignment expression is RHS
     TheValue = RHS;

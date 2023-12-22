@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Context.hh"
-#include "LLVM.hh"
+#include "Wrapper.hh"
 
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Value.h"
@@ -11,8 +11,6 @@
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Type.h>
 #include <memory>
-#include <optional>
-#include <utility>
 #include <vector>
 
 namespace Minic {
@@ -137,12 +135,10 @@ private:
   void checkVariableRedefinition(const std::unique_ptr<Declarator> &D);
   void checkVariableRedefinition(
       const std::vector<std::unique_ptr<Declarator>> &DList);
-  auto handleBinayExprConversion(llvm::Value *&LHS, llvm::Value *&RHS,
-                                 bool isLValue = false) -> void;
 
 public:
-  CodeGenVisitor()
-      : LW(std::make_unique<LLVMWrapper>()),
+  CodeGenVisitor(const std::string &ModuleID)
+      : LW(std::make_unique<LLVMWrapper>(ModuleID)),
         TheScope(std::make_unique<Scope>()), Current(TheScope.get()) {}
 
   auto Visit(const Program &TheProgram) -> void;

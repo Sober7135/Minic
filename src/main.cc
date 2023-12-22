@@ -3,6 +3,7 @@
 #include "CommonTokenStream.h"
 #include "MinicLexer.h"
 #include "MinicParser.h"
+#include "Target.hh"
 #include "Visitor.hh"
 
 #include <fstream>
@@ -35,8 +36,9 @@ auto main(int argc, char *argv[]) -> int {
   auto &AST = TheASTBuilder.AST();
   auto Printer = Minic::ASTPrinter(llvm::outs());
   Printer.Visit(AST);
-  Minic::CodeGenVisitor CGV;
+  Minic::CodeGenVisitor CGV(argv[1]);
   CGV.Visit(AST);
   llvm::outs() << "IR:\n";
   CGV.LW->Mod->print(llvm::outs(), nullptr);
+  Minic::genObjectFile(CGV);
 }

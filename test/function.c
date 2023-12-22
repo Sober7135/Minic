@@ -1,5 +1,6 @@
 int putchar(int c);
 
-int putchar(int c) { return 0; }
-
-int main() { putchar(14); }
+int main() {
+  putchar(67);
+  return 0;
+}

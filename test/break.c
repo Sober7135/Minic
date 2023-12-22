@@ -3,4 +3,5 @@ int main() {
   while (i > 100) {
     break;
   }
+  return 0;
 }

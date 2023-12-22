@@ -46,8 +46,10 @@ include_directories(${ANTLR_MinicGrammar_OUTPUT_DIR})
 
 if(LINUX) 
     message(STATUS ">>> Linux")
+    set(USE_LLVM /opt/llvm/bin/llvm-config)
     set(LLVM_DIR /opt/llvm/lib/cmake/llvm)
     # set(LLVM_DIR /usr/lib/cmake/llvm)
+    message(STATUS "LLVM_LIBS = ${LLVM_LIBS}")
 else(APPLE)
     message(STATUS ">>> APPLE")
     set(LLVM_DIR /opt/homebrew/opt/llvm/lib/cmake/llvm)
@@ -68,7 +70,8 @@ add_executable(minic ${SOURCES} ${ANTLR_MinicGrammar_CXX_OUTPUTS})
 
 # Find the libraries that correspond to the LLVM components
 # that we wish to use
-llvm_map_components_to_libnames(llvm_libs support core)
+#https://stackoverflow.com/questions/61188470/what-is-a-correct-way-to-solve-undefined-reference-to-undefined-reference-to-ll
+llvm_map_components_to_libnames(llvm_libs core asmprinter ${LLVM_TARGETS_TO_BUILD}) 
 
 # Link against LLVM libraries
 target_link_libraries(minic ${llvm_libs} )

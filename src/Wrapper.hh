@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Log.hh"
 #include "Type.hh"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"

@@ -59,10 +59,6 @@ auto LLVMWrapper::implicitConvert(llvm::Value *&Val, llvm::Type *DestTy)
   switch (flag) {
   case 0b00:
     // both are int
-    std::cout << Val->getType()->getTypeID() << '\n'
-              << DestTy->getTypeID() << "\n\n\n\n"
-              << std::endl;
-
     Val = Builder->CreateIntCast(Val, DestTy, true, "inttoint");
     break;
   case 0b01:

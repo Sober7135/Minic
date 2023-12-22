@@ -1,5 +1,6 @@
+int x = 6;
+
 int main() {
-  int x = 6;
   if (x) {
     int x = 0;
     return 1;

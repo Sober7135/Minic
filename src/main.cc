@@ -12,7 +12,10 @@
 using namespace antlr4;
 
 // TODO LValue and RValue
-// TODO implicit conversion (float -> int) (int -> float)
+// TODO implicitconversion (float -> int) (int -> float)
+// TODO CreateLoad handle Global Variable 
+//      1. expand Scope, store Type * and Value *
+// TOOD return stmt expr optional
 auto main(int argc, char *argv[]) -> int {
   // TODO  Parse Command Line Arguments
   std::ifstream Stream(argv[1]);

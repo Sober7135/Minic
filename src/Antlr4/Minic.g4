@@ -29,6 +29,7 @@ dataType
     : Int 
     | Float 
     | Char
+    | Void
 	  ;
 
 initDeclaratorList
@@ -103,7 +104,7 @@ exprStmt
     ;
 
 returnStmt
-    : Return expr Semicolon
+    : Return expr? Semicolon
     ;
     
 breakStmt

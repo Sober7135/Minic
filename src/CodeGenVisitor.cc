@@ -153,23 +153,6 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
   auto *Ret = Current->Find(Node->Name);
   Function *F = nullptr;
 
-  //  if (Ret) {
-  //    // Found.
-  //    // 1. Only prototype is defined
-  //    // 2. fully defined
-  //    // 3. Not a function
-  //    auto *F = static_cast<Function *>(Ret);
-  //    if (!F) {
-  //      // 3.
-  //      panic(std::string(Ret->getName()) + "is defined and is not a
-  //      function");
-  //    }
-  //    if (!F->empty()) {
-  //      // 2.
-  //      panic("Redefinition of Function " + std::string(Ret->getName()));
-  //    }
-  //    // 1.
-  //  }
   if (!Ret) {
     // Not defined
     // Generate Prototype
@@ -217,11 +200,27 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
 
   TheValue = nullptr;
   Visit(Node->Body.get());
+
+  // check main
+  if (F->getName() == "main") {
+    if (F->getReturnType() != LW->getType(DataType::Int)) {
+      panic("main's return type must be int");
+    }
+    if (!isa<ReturnInst>(F->back().back())) {
+      LW->Builder->CreateRet(ConstantInt::get(*LW->Ctx, APInt(32, 0)));
+    }
+  }
+
+  // Avoid double return
+  if (F->getReturnType()->isVoidTy() && (!isa<ReturnInst>(F->back().back()))) {
+    LW->Builder->CreateRetVoid();
+  }
   // Finish off the function
   llvm::verifyFunction(*F);
   TheValue = F;
 
   Current->Add(Node->Name, F);
+
   return;
 }
 
@@ -276,7 +275,7 @@ auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
     ArgVs.emplace_back(TheValue);
   }
 
-  TheValue = LW->Builder->CreateCall(TheFunction, ArgVs, "calltmp");
+  TheValue = LW->Builder->CreateCall(TheFunction, ArgVs);
 }
 
 auto CodeGenVisitor::Visit(UnaryExpr *Node) -> void {}
@@ -430,8 +429,13 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
 auto CodeGenVisitor::Visit(WhileStmt *Node) -> void {}
 
 auto CodeGenVisitor::Visit(ReturnStmt *Node) -> void {
+  if (!Node->TheExpr) {
+    LW->Builder->CreateRetVoid();
+    return;
+  }
+
   TheValue = nullptr;
-  Visit(Node->Expression.get());
+  Visit(Node->TheExpr.get());
   if (!TheValue) {
     panic("Failed to generate return statement Expression");
   }

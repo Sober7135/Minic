@@ -299,11 +299,11 @@ public:
 /// Return Statement
 ///   ::= 'return' Expr;
 class ReturnStmt : public Statement {
-  std::unique_ptr<Expr> Expression;
+  std::unique_ptr<Expr> TheExpr;
 
 public:
-  explicit ReturnStmt(std::unique_ptr<Expr> Expression)
-      : Expression(std::move(Expression)) {}
+  explicit ReturnStmt(std::unique_ptr<Expr> TheExpr = nullptr)
+      : TheExpr(std::move(TheExpr)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "ReturnStmt"; }
 

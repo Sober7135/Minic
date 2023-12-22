@@ -315,6 +315,10 @@ auto ASTBuilder::visitExprStmt(MinicParser::ExprStmtContext *ctx) -> std::any {
 /// VisitedStmt
 auto ASTBuilder::visitReturnStmt(MinicParser::ReturnStmtContext *ctx)
     -> std::any {
+  if (!ctx->expr()) {
+    VisitedStmt = std::make_unique<ReturnStmt>();
+    return nullptr;
+  }
   // Get VisitedExpr
   visitExpr(ctx->expr());
   VisitedStmt = std::make_unique<ReturnStmt>(std::move(VisitedExpr));

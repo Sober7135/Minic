@@ -54,12 +54,14 @@ inline std::map<std::string, DataType> String2DataType{
     {"int", DataType::Int},
     {"float", DataType::Float},
     {"char", DataType::Char},
+    {"void", DataType::Void},
 };
 
 inline std::map<DataType, std::string> DataType2String{
     {DataType::Int, "int"},
     {DataType::Float, "float"},
     {DataType::Char, "char"},
+    {DataType::Void, "void"},
 };
 
 inline std::map<std::string, BinaryOperator> String2BinaryOperator{

@@ -8,6 +8,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Type.h>
 #include <memory>
@@ -132,10 +133,11 @@ private:
   Scope *Current;
   llvm::Value *TheValue = nullptr;
 
+  auto getValue(ASTNode *Node) -> llvm::Value *;
   void checkVariableRedefinition(const std::unique_ptr<Declarator> &D);
   void checkVariableRedefinition(
       const std::vector<std::unique_ptr<Declarator>> &DList);
-  void visitPrototype(FunctionDecl *Node);
+  auto visitPrototype(FunctionDecl *Node) -> llvm::Function *;
 
 public:
   explicit CodeGenVisitor(const std::string &ModuleID)

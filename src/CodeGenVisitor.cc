@@ -31,6 +31,12 @@ namespace Minic {
 
 /* =============================== CodeGenVisitor =========================== */
 /* ================================== Private =============================== */
+auto CodeGenVisitor::getValue(ASTNode *Node) -> llvm::Value * {
+  TheValue = nullptr;
+  Visit(Node);
+  return TheValue;
+}
+
 void CodeGenVisitor::checkVariableRedefinition(
     const std::unique_ptr<Declarator> &D) {
   auto *Ret = Current->FindCurrent(D->getName());
@@ -46,7 +52,7 @@ void CodeGenVisitor::checkVariableRedefinition(
   }
 }
 
-void CodeGenVisitor::visitPrototype(FunctionDecl *Node) {
+auto CodeGenVisitor::visitPrototype(FunctionDecl *Node) -> llvm::Function * {
   // Prototype
   std::vector<llvm::Type *> TypeList;
   std::vector<std::string> NameList;
@@ -64,7 +70,7 @@ void CodeGenVisitor::visitPrototype(FunctionDecl *Node) {
   for (unsigned i = 0, end = F->arg_size(); i < end; i++) {
     (F->args().begin() + i)->setName(NameList[i]);
   }
-  TheValue = F;
+  return F;
 }
 
 /* =============================== CodeGenVisitor =========================== */
@@ -93,13 +99,13 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
       llvm::Constant *TheInitializer = nullptr;
       if (Node->TheInitializerList[i]) {
         // Have initializer
-        TheValue = nullptr;
-        Visit(Node->TheInitializerList[i].get());
-        if (!TheValue) {
+        auto *Val = getValue(Node->TheInitializerList[i].get());
+
+        if (!Val) {
           panic("Failed to generate the initializer");
         }
-        LW->implicitConvert(TheValue, Type);
-        TheInitializer = static_cast<llvm::Constant *>(TheValue);
+        LW->implicitConvert(Val, Type);
+        TheInitializer = static_cast<llvm::Constant *>(Val);
         if (!TheInitializer) {
           panic("Failed to generate the initializer, static_cast");
         }
@@ -121,13 +127,12 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
     llvm::Constant *TheInitializer = nullptr;
     if (Node->TheInitializerList[i]) {
       // Have initializer
-      TheValue = nullptr;
-      Visit(Node->TheInitializerList[i].get());
-      if (!TheValue) {
+      auto *Val = getValue(Node->TheInitializerList[i].get());
+      if (!Val) {
         panic("Failed to generate the initializer");
       }
-      LW->implicitConvert(TheValue, Type);
-      TheInitializer = static_cast<llvm::Constant *>(TheValue);
+      LW->implicitConvert(Val, Type);
+      TheInitializer = static_cast<llvm::Constant *>(Val);
       if (!TheInitializer) {
         panic("Failed to generate the initializer, static_cast");
       }
@@ -156,9 +161,7 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
   if (!Ret) {
     // Not defined
     // Generate Prototype
-    TheValue = nullptr;
-    visitPrototype(Node);
-    F = llvm::dyn_cast<llvm::Function>(TheValue);
+    F = visitPrototype(Node);
   } else {
     // Found.
     // 1. Only prototype is defined
@@ -198,7 +201,6 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
     Current->Add(std::string(Arg.getName()), Alloca);
   }
 
-  TheValue = nullptr;
   Visit(Node->Body.get());
 
   // check main
@@ -264,16 +266,16 @@ auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
 
   for (size_t i = 0, end = Args.size(); i != end; i++) {
     auto *DestTy = (TheFunction->args().begin() + i)->getType();
-    TheValue = nullptr;
-    Visit(Args[i].get());
+    auto *Val = getValue(Args[i].get());
+
     if (Args[i]->isLValue()) {
-      TheValue = LW->load(TheValue);
+      Val = LW->load(Val);
     }
-    if (!TheValue) {
+    if (!Val) {
       panic("Failed to generate " + Node->Callee + "'s args");
     }
-    LW->implicitConvert(TheValue, DestTy);
-    ArgVs.emplace_back(TheValue);
+    LW->implicitConvert(Val, DestTy);
+    ArgVs.emplace_back(Val);
   }
 
   TheValue = LW->Builder->CreateCall(TheFunction, ArgVs);
@@ -284,23 +286,15 @@ auto CodeGenVisitor::Visit(UnaryExpr *Node) -> void {}
 auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
   auto BinOp = Node->TheBinaryOperator;
 
-  TheValue = nullptr;
-  Visit(Node->LHS.get());
-  if (!TheValue) {
+  auto *LHS = getValue(Node->LHS.get());
+  if (!LHS) {
     panic("Failed to generate IR of LHS");
   }
-  auto LHS = TheValue;
 
-  TheValue = nullptr;
-  Visit(Node->RHS.get());
-  if (!TheValue) {
-    panic("Failed to generate IR of LHS");
+  auto *RHS = getValue(Node->RHS.get());
+  if (!RHS) {
+    panic("Failed to generate IR of RHS");
   }
-  auto RHS = TheValue;
-
-  // TODO CONVERSION
-  // `int x = 9.0;` => convert to `int`
-  // `9 + 9.00` => convert to `float`
 
   // '='
   if (BinOp == BinaryOperator::Assign) {
@@ -376,12 +370,11 @@ auto CodeGenVisitor::Visit(ExprStmt *Node) -> void {
 }
 
 auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
-  TheValue = nullptr;
-  Visit(Node->Cond.get());
-  if (!TheValue) {
+  auto *CondV = getValue(Node->Cond.get());
+  if (!CondV) {
     panic("Failed to generate if condition");
   }
-  auto *CondV = TheValue;
+
   // Check LValue
   if (Node->Cond->isLValue()) {
     CondV = LW->load(CondV);
@@ -429,12 +422,11 @@ auto CodeGenVisitor::Visit(ReturnStmt *Node) -> void {
     return;
   }
 
-  TheValue = nullptr;
-  Visit(Node->TheExpr.get());
-  if (!TheValue) {
+  auto *RetExpr = getValue(Node->TheExpr.get());
+  if (!RetExpr) {
     panic("Failed to generate return statement Expression");
   }
-  LW->Builder->CreateRet(TheValue);
+  LW->Builder->CreateRet(RetExpr);
 }
 
 auto CodeGenVisitor::Visit(BreakStmt *Node) -> void {}

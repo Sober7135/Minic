@@ -21,18 +21,18 @@ static auto removeExtAndPrefix(const std::string &Str) -> std::string {
 }
 
 inline void genObjectFile(CodeGenVisitor &V) {
-  InitializeAllTargetInfos();
-  InitializeAllTargets();
-  InitializeAllTargetMCs();
-  InitializeAllAsmParsers();
-  InitializeAllAsmPrinters();
+  llvm::InitializeAllTargetInfos();
+  llvm::InitializeAllTargets();
+  llvm::InitializeAllTargetMCs();
+  llvm::InitializeAllAsmParsers();
+  llvm::InitializeAllAsmPrinters();
 
   auto TargetTriple = llvm::sys::getDefaultTargetTriple();
   auto &TheModule = V.LW->Mod;
   TheModule->setTargetTriple(TargetTriple);
 
   std::string Error;
-  auto Target = TargetRegistry::lookupTarget(TargetTriple, Error);
+  auto Target = llvm::TargetRegistry::lookupTarget(TargetTriple, Error);
 
   // Print an error and exit if we couldn't find the requested target.
   // This generally occurs if we've forgotten to initialise the
@@ -44,9 +44,9 @@ inline void genObjectFile(CodeGenVisitor &V) {
   auto CPU = "generic";
   auto Features = "";
 
-  TargetOptions opt;
+  llvm::TargetOptions opt;
   auto TheTargetMachine = Target->createTargetMachine(
-      TargetTriple, CPU, Features, opt, Reloc::PIC_);
+      TargetTriple, CPU, Features, opt, llvm::Reloc::PIC_);
 
   TheModule->setDataLayout(TheTargetMachine->createDataLayout());
 
@@ -55,13 +55,13 @@ inline void genObjectFile(CodeGenVisitor &V) {
   llvm::outs() << FileNameWithoutExt << "\n\n\n\n";
   auto Filename = FileNameWithoutExt + ".o";
   std::error_code EC;
-  raw_fd_ostream dest(Filename, EC, sys::fs::OF_None);
+  llvm::raw_fd_ostream dest(Filename, EC, llvm::sys::fs::OF_None);
   if (EC) {
     panic("Could not open file: " + EC.message());
   }
 
   llvm::legacy::PassManager pass;
-  auto FileType = CodeGenFileType::CGFT_ObjectFile;
+  auto FileType = llvm::CodeGenFileType::CGFT_ObjectFile;
 
   if (TheTargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
     panic("TheTargetMachine can't emit a file of this type");

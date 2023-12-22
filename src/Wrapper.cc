@@ -17,18 +17,20 @@ auto LLVMWrapper::getType(DataType Type) -> llvm::Type * {
   }
 }
 
-auto LLVMWrapper::convertToBool(Value *Val, std::string Name) -> Value * {
+auto LLVMWrapper::convertToBool(llvm::Value *Val, std::string Name)
+    -> llvm::Value * {
 
   auto Type = Val->getType();
   if (Type->isIntegerTy()) {
     auto W = Type->getIntegerBitWidth();
     return Builder->CreateICmpNE(
         Val,
-        llvm::ConstantInt::get(llvm::IntegerType::get(*Ctx, W), APInt(W, 0)),
+        llvm::ConstantInt::get(llvm::IntegerType::get(*Ctx, W),
+                               llvm::APInt(W, 0)),
         Name);
   } else if (Type->isFloatTy()) {
     return Builder->CreateFCmpONE(
-        Val, llvm::ConstantFP::get(*Ctx, APFloat(0.0)), Name);
+        Val, llvm::ConstantFP::get(*Ctx, llvm::APFloat(0.0)), Name);
   }
   panic("Unknown conversion to bool");
   return nullptr;
@@ -37,13 +39,14 @@ auto LLVMWrapper::convertToBool(Value *Val, std::string Name) -> Value * {
 auto LLVMWrapper::getDefaultConstant(llvm::Type *Type) -> llvm::Constant * {
   if (Type->isIntegerTy()) {
     auto W = Type->getIntegerBitWidth();
-    return ConstantInt::get(*Ctx, APInt(W, 0));
+    return llvm::ConstantInt::get(*Ctx, llvm::APInt(W, 0));
   } else {
-    return ConstantFP::get(*Ctx, APFloat(0.0));
+    return llvm::ConstantFP::get(*Ctx, llvm::APFloat(0.0));
   }
 }
 
-auto LLVMWrapper::implicitConvert(llvm::Value *&Val, Type *DestTy) -> void {
+auto LLVMWrapper::implicitConvert(llvm::Value *&Val, llvm::Type *DestTy)
+    -> void {
   auto ValType = Val->getType();
   if (ValType == DestTy) {
     return;

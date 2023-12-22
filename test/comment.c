@@ -1,4 +1,4 @@
-int test()  {
+int test() {
   /**
    * HELLO, LET US TEST BLOCK COMMENT
    *
@@ -8,10 +8,12 @@ int test()  {
    *
    * I AM A FW;
    */
-  return 0; // //  test line comment 
+  return 0; // //  test line comment
 }
 
 // test
 /**
  * FUCK OFF
  */
+
+int main() {}

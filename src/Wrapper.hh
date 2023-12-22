@@ -14,20 +14,18 @@
 #include <llvm/Support/raw_ostream.h>
 
 namespace Minic {
-using namespace llvm;
-
 class LLVMWrapper {
 public:
-  std::unique_ptr<LLVMContext> Ctx;
-  std::unique_ptr<IRBuilder<>> Builder;
-  std::unique_ptr<Module> Mod;
+  std::unique_ptr<llvm::LLVMContext> Ctx;
+  std::unique_ptr<llvm::IRBuilder<>> Builder;
+  std::unique_ptr<llvm::Module> Mod;
 
   explicit LLVMWrapper(const std::string &ModuleID) {
-    Ctx = std::make_unique<LLVMContext>();
-    Mod = std::make_unique<Module>(ModuleID, *Ctx);
+    Ctx = std::make_unique<llvm::LLVMContext>();
+    Mod = std::make_unique<llvm::Module>(ModuleID, *Ctx);
 
     // Create a new builder for the module.
-    Builder = std::make_unique<IRBuilder<>>(*Ctx);
+    Builder = std::make_unique<llvm::IRBuilder<>>(*Ctx);
   }
 
   auto getType(DataType Type) -> llvm::Type *;
@@ -42,9 +40,9 @@ public:
     return TmpB.CreateAlloca(Type, ArraySize, Name.c_str());
   }
 
-  auto convertToBool(Value *Val, std::string Name = "") -> Value *;
+  auto convertToBool(llvm::Value *Val, std::string Name = "") -> llvm::Value *;
   auto getDefaultConstant(llvm::Type *Type) -> llvm::Constant *;
 
-  auto implicitConvert(llvm::Value *&Val, Type *DestTy) -> void;
+  auto implicitConvert(llvm::Value *&Val, llvm::Type *DestTy) -> void;
 };
 } // namespace Minic

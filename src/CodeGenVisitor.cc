@@ -58,8 +58,8 @@ void CodeGenVisitor::visitPrototype(FunctionDecl *Node) {
     NameList.emplace_back(VarName);
   }
 
-  auto *FT = FunctionType::get(RetType, TypeList, false);
-  auto *F = Function::Create(FT, Function::ExternalLinkage, Node->Name,
+  auto *FT = llvm::FunctionType::get(RetType, TypeList, false);
+  auto *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, Node->Name,
                              LW->Mod.get());
   for (unsigned i = 0, end = F->arg_size(); i < end; i++) {
     (F->args().begin() + i)->setName(NameList[i]);
@@ -90,7 +90,7 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
 
   if (Current->isTop()) {
     for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
-      Constant *TheInitializer = nullptr;
+      llvm::Constant *TheInitializer = nullptr;
       if (Node->TheInitializerList[i]) {
         // Have initializer
         TheValue = nullptr;
@@ -99,7 +99,7 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
           panic("Failed to generate the initializer");
         }
         LW->implicitConvert(TheValue, Type);
-        TheInitializer = static_cast<Constant *>(TheValue);
+        TheInitializer = static_cast<llvm::Constant *>(TheValue);
         if (!TheInitializer) {
           panic("Failed to generate the initializer, static_cast");
         }
@@ -107,7 +107,7 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
         TheInitializer = LW->getDefaultConstant(Type);
       }
       auto Name = Node->TheDeclaratorList[i]->Name;
-      auto *GV = new GlobalVariable(*LW->Mod.get(), Type, false,
+      auto *GV = new llvm::GlobalVariable(*LW->Mod.get(), Type, false,
                                     llvm::GlobalValue::ExternalLinkage,
                                     TheInitializer, Name);
       Current->Add(Name, GV);
@@ -118,7 +118,7 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
   auto *TheFunction = LW->Builder->GetInsertBlock()->getParent();
 
   for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
-    Constant *TheInitializer = nullptr;
+    llvm::Constant *TheInitializer = nullptr;
     if (Node->TheInitializerList[i]) {
       // Have initializer
       TheValue = nullptr;
@@ -127,7 +127,7 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
         panic("Failed to generate the initializer");
       }
       LW->implicitConvert(TheValue, Type);
-      TheInitializer = static_cast<Constant *>(TheValue);
+      TheInitializer = static_cast<llvm::Constant *>(TheValue);
       if (!TheInitializer) {
         panic("Failed to generate the initializer, static_cast");
       }
@@ -151,20 +151,20 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
   }
 
   auto *Ret = Current->Find(Node->Name);
-  Function *F = nullptr;
+  llvm::Function *F = nullptr;
 
   if (!Ret) {
     // Not defined
     // Generate Prototype
     TheValue = nullptr;
     visitPrototype(Node);
-    F = llvm::dyn_cast<Function>(TheValue);
+    F = llvm::dyn_cast<llvm::Function>(TheValue);
   } else {
     // Found.
     // 1. Only prototype is defined
     // 2. fully defined and current is declaration not a definition.
     // 3. Not a function
-    F = static_cast<Function *>(Ret);
+    F = static_cast<llvm::Function *>(Ret);
     if (!F) {
       // 3.
       panic(std::string(Ret->getName()) + "is defined and is not a function");
@@ -183,7 +183,7 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
   }
 
   // Body
-  auto *BB = BasicBlock::Create(*LW->Ctx.get(), "entry", F);
+  auto *BB = llvm::BasicBlock::Create(*LW->Ctx.get(), "entry", F);
   LW->Builder->SetInsertPoint(BB);
 
   auto Child = std::make_unique<Scope>(Current);
@@ -206,13 +206,13 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
     if (F->getReturnType() != LW->getType(DataType::Int)) {
       panic("main's return type must be int");
     }
-    if (!isa<ReturnInst>(F->back().back())) {
-      LW->Builder->CreateRet(ConstantInt::get(*LW->Ctx, APInt(32, 0)));
+    if (!isa<llvm::ReturnInst>(F->back().back())) {
+      LW->Builder->CreateRet(llvm::ConstantInt::get(*LW->Ctx, llvm::APInt(32, 0)));
     }
   }
 
   // Avoid double return
-  if (F->getReturnType()->isVoidTy() && (!isa<ReturnInst>(F->back().back()))) {
+  if (F->getReturnType()->isVoidTy() && (!isa<llvm::ReturnInst>(F->back().back()))) {
     LW->Builder->CreateRetVoid();
   }
   // Finish off the function
@@ -246,7 +246,7 @@ auto CodeGenVisitor::Visit(VariableExpr *Node) -> void {
 auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
   // TODO Check Args Type ???
   auto *Val = Current->Find(Node->Callee);
-  auto *TheFunction = static_cast<Function *>(Val);
+  auto *TheFunction = static_cast<llvm::Function *>(Val);
   if (!Val) {
     panic(Node->Callee + " is not function");
   }
@@ -352,15 +352,15 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
 auto CodeGenVisitor::Visit(LiteralExpr *Node) -> void { Node->accept(this); }
 
 auto CodeGenVisitor::Visit(LiteralIntegerExpr *Node) -> void {
-  TheValue = ConstantInt::get(*LW->Ctx.get(), APInt(32, Node->Val));
+  TheValue = llvm::ConstantInt::get(*LW->Ctx.get(), llvm::APInt(32, Node->Val));
 }
 
 auto CodeGenVisitor::Visit(LiteralFloatExpr *Node) -> void {
-  TheValue = ConstantFP::get(*LW->Ctx.get(), APFloat(Node->Val));
+  TheValue = llvm::ConstantFP::get(*LW->Ctx.get(), llvm::APFloat(Node->Val));
 }
 
 auto CodeGenVisitor::Visit(LiteralCharExpr *Node) -> void {
-  TheValue = ConstantInt::get(*LW->Ctx.get(), APInt(8, Node->Char));
+  TheValue = llvm::ConstantInt::get(*LW->Ctx.get(), llvm::APInt(8, Node->Char));
 }
 
 auto CodeGenVisitor::Visit(Statement *Node) -> void {
@@ -401,9 +401,9 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
 
   // Create blocks for the then and else cases.  Insert the 'then' block at the
   // end of the function.
-  BasicBlock *ThenBB = BasicBlock::Create(*LW->Ctx, "then", TheFunction);
-  BasicBlock *ElseBB = BasicBlock::Create(*LW->Ctx, "else");
-  BasicBlock *MergeBB = BasicBlock::Create(*LW->Ctx, "ifcont");
+  auto *ThenBB = llvm::BasicBlock::Create(*LW->Ctx, "then", TheFunction);
+  auto *ElseBB = llvm::BasicBlock::Create(*LW->Ctx, "else");
+  auto *MergeBB = llvm::BasicBlock::Create(*LW->Ctx, "ifcont");
 
   LW->Builder->CreateCondBr(CondV, ThenBB, ElseBB);
 

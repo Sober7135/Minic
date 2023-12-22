@@ -135,9 +135,10 @@ private:
   void checkVariableRedefinition(const std::unique_ptr<Declarator> &D);
   void checkVariableRedefinition(
       const std::vector<std::unique_ptr<Declarator>> &DList);
+  void visitPrototype(FunctionDecl *Node);
 
 public:
-  CodeGenVisitor(const std::string &ModuleID)
+  explicit CodeGenVisitor(const std::string &ModuleID)
       : LW(std::make_unique<LLVMWrapper>(ModuleID)),
         TheScope(std::make_unique<Scope>()), Current(TheScope.get()) {}
 

@@ -18,3 +18,7 @@ Draft*
 **/*.o
 
 Makefile
+
+
+test/**
+!test/*.c

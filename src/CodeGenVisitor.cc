@@ -46,6 +46,27 @@ void CodeGenVisitor::checkVariableRedefinition(
   }
 }
 
+void CodeGenVisitor::visitPrototype(FunctionDecl *Node) {
+  // Prototype
+  std::vector<llvm::Type *> TypeList;
+  std::vector<std::string> NameList;
+  auto *RetType = LW->getType(Node->Type);
+  for (const auto &ParmVar : Node->VarList) {
+    auto Type = ParmVar->getType();
+    const auto &VarName = ParmVar->getName();
+    TypeList.emplace_back(LW->getType(Type));
+    NameList.emplace_back(VarName);
+  }
+
+  auto *FT = FunctionType::get(RetType, TypeList, false);
+  auto *F = Function::Create(FT, Function::ExternalLinkage, Node->Name,
+                             LW->Mod.get());
+  for (unsigned i = 0, end = F->arg_size(); i < end; i++) {
+    (F->args().begin() + i)->setName(NameList[i]);
+  }
+  TheValue = F;
+}
+
 /* =============================== CodeGenVisitor =========================== */
 /* =================================== Public =============================== */
 auto CodeGenVisitor::Visit(const Program &TheProgram) -> void {
@@ -130,34 +151,46 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
   }
 
   auto *Ret = Current->Find(Node->Name);
+  Function *F = nullptr;
 
-  // Lookup
-  if (Ret) {
-    auto *F = static_cast<Function *>(Ret);
+  //  if (Ret) {
+  //    // Found.
+  //    // 1. Only prototype is defined
+  //    // 2. fully defined
+  //    // 3. Not a function
+  //    auto *F = static_cast<Function *>(Ret);
+  //    if (!F) {
+  //      // 3.
+  //      panic(std::string(Ret->getName()) + "is defined and is not a
+  //      function");
+  //    }
+  //    if (!F->empty()) {
+  //      // 2.
+  //      panic("Redefinition of Function " + std::string(Ret->getName()));
+  //    }
+  //    // 1.
+  //  }
+  if (!Ret) {
+    // Not defined
+    // Generate Prototype
+    TheValue = nullptr;
+    visitPrototype(Node);
+    F = llvm::dyn_cast<Function>(TheValue);
+  } else {
+    // Found.
+    // 1. Only prototype is defined
+    // 2. fully defined and current is declaration not a definition.
+    // 3. Not a function
+    F = static_cast<Function *>(Ret);
     if (!F) {
+      // 3.
       panic(std::string(Ret->getName()) + "is defined and is not a function");
     }
-    if (!F->empty()) {
+    if (!(F->empty() || Node->isPrototype())) {
+      // 2.
       panic("Redefinition of Function " + std::string(Ret->getName()));
     }
-  }
-
-  // Prototype
-  std::vector<llvm::Type *> TypeList;
-  std::vector<std::string> NameList;
-  auto *RetType = LW->getType(Node->Type);
-  for (const auto &ParmVar : Node->VarList) {
-    auto Type = ParmVar->getType();
-    const auto &VarName = ParmVar->getName();
-    TypeList.emplace_back(LW->getType(Type));
-    NameList.emplace_back(VarName);
-  }
-
-  auto *FT = FunctionType::get(RetType, TypeList, false);
-  auto *F = Function::Create(FT, Function::ExternalLinkage, Node->Name,
-                             LW->Mod.get());
-  for (unsigned i = 0, end = F->arg_size(); i < end; i++) {
-    (F->args().begin() + i)->setName(NameList[i]);
+    // 1.
   }
 
   if (Node->isPrototype()) {

@@ -59,8 +59,8 @@ void CodeGenVisitor::visitPrototype(FunctionDecl *Node) {
   }
 
   auto *FT = llvm::FunctionType::get(RetType, TypeList, false);
-  auto *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage, Node->Name,
-                             LW->Mod.get());
+  auto *F = llvm::Function::Create(FT, llvm::Function::ExternalLinkage,
+                                   Node->Name, LW->Mod.get());
   for (unsigned i = 0, end = F->arg_size(); i < end; i++) {
     (F->args().begin() + i)->setName(NameList[i]);
   }
@@ -108,8 +108,8 @@ auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
       }
       auto Name = Node->TheDeclaratorList[i]->Name;
       auto *GV = new llvm::GlobalVariable(*LW->Mod.get(), Type, false,
-                                    llvm::GlobalValue::ExternalLinkage,
-                                    TheInitializer, Name);
+                                          llvm::GlobalValue::ExternalLinkage,
+                                          TheInitializer, Name);
       Current->Add(Name, GV);
     }
     return;
@@ -207,12 +207,14 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
       panic("main's return type must be int");
     }
     if (!isa<llvm::ReturnInst>(F->back().back())) {
-      LW->Builder->CreateRet(llvm::ConstantInt::get(*LW->Ctx, llvm::APInt(32, 0)));
+      LW->Builder->CreateRet(
+          llvm::ConstantInt::get(*LW->Ctx, llvm::APInt(32, 0)));
     }
   }
 
   // Avoid double return
-  if (F->getReturnType()->isVoidTy() && (!isa<llvm::ReturnInst>(F->back().back()))) {
+  if (F->getReturnType()->isVoidTy() &&
+      (!isa<llvm::ReturnInst>(F->back().back()))) {
     LW->Builder->CreateRetVoid();
   }
   // Finish off the function
@@ -265,8 +267,7 @@ auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
     TheValue = nullptr;
     Visit(Args[i].get());
     if (Args[i]->isLValue()) {
-      auto *Casted = llvm::dyn_cast<llvm::AllocaInst>(TheValue);
-      TheValue = LW->Builder->CreateLoad(Casted->getAllocatedType(), Casted);
+      TheValue = LW->load(TheValue);
     }
     if (!TheValue) {
       panic("Failed to generate " + Node->Callee + "'s args");
@@ -383,13 +384,7 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
   auto *CondV = TheValue;
   // Check LValue
   if (Node->Cond->isLValue()) {
-    auto *Casted = llvm::dyn_cast<llvm::AllocaInst>(CondV);
-    auto *Var = dynamic_cast<VariableExpr *>(Node->Cond.get());
-    if (!Casted) {
-      panic("just panic");
-    }
-    CondV = LW->Builder->CreateLoad(Casted->getAllocatedType(), Casted,
-                                    Var->getName());
+    CondV = LW->load(CondV);
   }
 
   CondV = LW->convertToBool(CondV, "ifcond");

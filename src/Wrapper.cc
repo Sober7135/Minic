@@ -83,4 +83,16 @@ auto LLVMWrapper::implicitConvert(llvm::Value *&Val, llvm::Type *DestTy)
     panic("Unknown Type, flag: " + std::to_string(flag));
   }
 }
+
+auto LLVMWrapper::load(llvm::Value *Val) -> llvm::Value * {
+  if (llvm::isa<llvm::AllocaInst>(Val)) {
+    return Builder->CreateLoad(
+        llvm::dyn_cast<llvm::AllocaInst>(Val)->getAllocatedType(), Val);
+  } else if (llvm::isa<llvm::GlobalVariable>(Val)) {
+    return Builder->CreateLoad(
+        llvm::dyn_cast<llvm::GlobalVariable>(Val)->getValueType(), Val);
+  }
+  panic("Function cannot be loaded");
+  return nullptr;
+}
 } // namespace Minic

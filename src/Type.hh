@@ -28,8 +28,8 @@ enum class BinaryOperator {
   Multiply,
   Divide,
 
-  Or,
-  And,
+  LogicalOr,
+  LogicalAnd,
 };
 
 enum class UnaryOperator {
@@ -70,8 +70,8 @@ inline std::map<std::string, BinaryOperator> String2BinaryOperator{
     {">", BinaryOperator::Greater},    {">=", BinaryOperator::GreaterEqual},
     {"!=", BinaryOperator::NotEqual},  {"+", BinaryOperator::Plus},
     {"-", BinaryOperator::Minus},      {"*", BinaryOperator::Multiply},
-    {"/", BinaryOperator::Divide},     {"||", BinaryOperator::Or},
-    {"&&", BinaryOperator::And},
+    {"/", BinaryOperator::Divide},     {"||", BinaryOperator::LogicalOr},
+    {"&&", BinaryOperator::LogicalAnd},
 
 };
 

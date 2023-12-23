@@ -17,23 +17,23 @@ auto LLVMWrapper::getType(DataType Type) -> llvm::Type * {
   }
 }
 
-auto LLVMWrapper::convertToBool(llvm::Value *Val, std::string Name)
-    -> llvm::Value * {
+auto LLVMWrapper::convertToBool(llvm::Value *&Val, std::string Name) -> void {
 
   auto Type = Val->getType();
   if (Type->isIntegerTy()) {
     auto W = Type->getIntegerBitWidth();
-    return Builder->CreateICmpNE(
+    Val = Builder->CreateICmpNE(
         Val,
         llvm::ConstantInt::get(llvm::IntegerType::get(*Ctx, W),
                                llvm::APInt(W, 0)),
         Name);
+    return;
   } else if (Type->isFloatTy()) {
-    return Builder->CreateFCmpONE(
+    Val = Builder->CreateFCmpONE(
         Val, llvm::ConstantFP::get(*Ctx, llvm::APFloat(0.0)), Name);
+    return;
   }
   panic("Unknown conversion to bool");
-  return nullptr;
 }
 
 auto LLVMWrapper::getDefaultConstant(llvm::Type *Type) -> llvm::Constant * {
@@ -80,15 +80,17 @@ auto LLVMWrapper::implicitConvert(llvm::Value *&Val, llvm::Type *DestTy)
   }
 }
 
-auto LLVMWrapper::load(llvm::Value *Val) -> llvm::Value * {
+auto LLVMWrapper::load(llvm::Value *&Val) -> void {
   if (llvm::isa<llvm::AllocaInst>(Val)) {
-    return Builder->CreateLoad(
+    Val = Builder->CreateLoad(
         llvm::dyn_cast<llvm::AllocaInst>(Val)->getAllocatedType(), Val);
+    return;
   } else if (llvm::isa<llvm::GlobalVariable>(Val)) {
-    return Builder->CreateLoad(
+    Val = Builder->CreateLoad(
         llvm::dyn_cast<llvm::GlobalVariable>(Val)->getValueType(), Val);
+    return;
   }
   panic("Function cannot be loaded");
-  return nullptr;
+  return;
 }
 } // namespace Minic

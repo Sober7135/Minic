@@ -43,9 +43,9 @@ public:
   }
 
   auto getType(DataType Type) -> llvm::Type *;
-  auto convertToBool(llvm::Value *Val, std::string Name = "") -> llvm::Value *;
+  auto convertToBool(llvm::Value *&Val, std::string Name = "") -> void;
   auto getDefaultConstant(llvm::Type *Type) -> llvm::Constant *;
   auto implicitConvert(llvm::Value *&Val, llvm::Type *DestTy) -> void;
-  auto load(llvm::Value *Val) -> llvm::Value *;
+  auto load(llvm::Value *&Val) -> void;
 };
 } // namespace Minic

@@ -269,7 +269,7 @@ auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
     auto *Val = getValue(Args[i].get());
 
     if (Args[i]->isLValue()) {
-      Val = LW->load(Val);
+      LW->load(Val);
     }
     if (!Val) {
       panic("Failed to generate " + Node->Callee + "'s args");
@@ -310,36 +310,109 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
     return;
   }
 
-  // cast
-  // int -> float,  (1.1 + 4)
-  //
+  // load
+  if (Node->LHS->isLValue()) {
+    LW->load(LHS);
+  }
+  if (Node->RHS->isLValue()) {
+    LW->load(RHS);
+  }
+
+  auto convert = [&](llvm::Value *&LHS, llvm::Value *&RHS) {
+    if (LHS->getType()->isFloatTy() || RHS->getType()->isFloatTy()) {
+      LW->implicitConvert(LHS, LW->getType(DataType::Float));
+      LW->implicitConvert(RHS, LW->getType(DataType::Float));
+      return true;
+    }
+    // Is Integer... Integer lift
+    LW->implicitConvert(LHS, LW->getType(DataType::Int));
+    LW->implicitConvert(RHS, LW->getType(DataType::Int));
+    return false;
+  };
+
   switch (BinOp) {
   case Minic::BinaryOperator::Assign:
     panic("'=' have been handled above");
     break;
   case Minic::BinaryOperator::Plus:
+    if (convert(LHS, RHS)) {
+      TheValue = LW->Builder->CreateFAdd(LHS, RHS, "faddtmp");
+    } else {
+      TheValue = LW->Builder->CreateAdd(LHS, RHS, "addtmp");
+    }
     break;
   case Minic::BinaryOperator::Minus:
+    if (convert(LHS, RHS)) {
+      TheValue = LW->Builder->CreateFSub(LHS, RHS, "fsubtmp");
+    } else {
+      TheValue = LW->Builder->CreateSub(LHS, RHS, "subtmp");
+    }
     break;
   case Minic::BinaryOperator::Multiply:
+    if (convert(LHS, RHS)) {
+      TheValue = LW->Builder->CreateFMul(LHS, RHS, "fmultmp");
+    } else {
+      TheValue = LW->Builder->CreateMul(LHS, RHS, "multmp");
+    }
     break;
   case Minic::BinaryOperator::Divide:
+    if (convert(LHS, RHS)) {
+      TheValue = LW->Builder->CreateFDiv(LHS, RHS, "fdivtmp");
+    } else {
+      TheValue = LW->Builder->CreateSDiv(LHS, RHS, "divtmp");
+    }
     break;
-  case Minic::BinaryOperator::And:
+  case Minic::BinaryOperator::LogicalAnd:
+    LW->convertToBool(LHS);
+    LW->convertToBool(RHS);
+    TheValue = LW->Builder->CreateLogicalAnd(LHS, RHS, "logicalandtmp");
     break;
-  case Minic::BinaryOperator::Or:
+  case Minic::BinaryOperator::LogicalOr:
+    LW->convertToBool(LHS);
+    LW->convertToBool(RHS);
+    TheValue = LW->Builder->CreateLogicalOr(LHS, RHS, "logicalortmp");
     break;
   case Minic::BinaryOperator::Less:
+    if (convert(LHS, RHS)) {
+      TheValue = LW->Builder->CreateFCmpOLT(LHS, RHS, "flesstmp");
+    } else {
+      TheValue = LW->Builder->CreateICmpSLT(LHS, RHS, "lesstmp");
+    }
     break;
   case Minic::BinaryOperator::LessEqual:
+    if (convert(LHS, RHS)) {
+      TheValue = LW->Builder->CreateFCmpOLE(LHS, RHS, "flesstmp");
+    } else {
+      TheValue = LW->Builder->CreateICmpSLE(LHS, RHS, "lesstmp");
+    }
     break;
   case Minic::BinaryOperator::Greater:
+    if (convert(LHS, RHS)) {
+      TheValue = LW->Builder->CreateFCmpOGT(LHS, RHS, "flesstmp");
+    } else {
+      TheValue = LW->Builder->CreateICmpSGT(LHS, RHS, "lesstmp");
+    }
     break;
   case Minic::BinaryOperator::GreaterEqual:
+    if (convert(LHS, RHS)) {
+      TheValue = LW->Builder->CreateFCmpOGE(LHS, RHS, "flesstmp");
+    } else {
+      TheValue = LW->Builder->CreateICmpSGE(LHS, RHS, "lesstmp");
+    }
     break;
   case Minic::BinaryOperator::Equal:
+    if (convert(LHS, RHS)) {
+      TheValue = LW->Builder->CreateFCmpOEQ(LHS, RHS, "flesstmp");
+    } else {
+      TheValue = LW->Builder->CreateICmpEQ(LHS, RHS, "lesstmp");
+    }
     break;
   case Minic::BinaryOperator::NotEqual:
+    if (convert(LHS, RHS)) {
+      TheValue = LW->Builder->CreateFCmpONE(LHS, RHS, "flesstmp");
+    } else {
+      TheValue = LW->Builder->CreateICmpNE(LHS, RHS, "lesstmp");
+    }
     break;
   }
 }
@@ -377,10 +450,10 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
 
   // Check LValue
   if (Node->Cond->isLValue()) {
-    CondV = LW->load(CondV);
+    LW->load(CondV);
   }
 
-  CondV = LW->convertToBool(CondV, "ifcond");
+  LW->convertToBool(CondV, "ifcond");
   if (!CondV) {
     panic("Failed to convert to bool");
   }

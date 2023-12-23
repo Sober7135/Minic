@@ -11,11 +11,7 @@
 
 using namespace antlr4;
 
-// TODO LValue and RValue
-// TODO implicitconversion (float -> int) (int -> float)
-// TODO CreateLoad handle Global Variable
-//      1. expand Scope, store Type * and Value *
-// TOOD return stmt expr optional
+// TODO frontend Support LogicalAnd ... Xor Mod....
 auto main(int argc, char *argv[]) -> int {
   // TODO  Parse Command Line Arguments
   std::ifstream Stream(argv[1]);

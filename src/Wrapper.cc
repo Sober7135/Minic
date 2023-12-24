@@ -1,5 +1,7 @@
 #include "Wrapper.hh"
 #include "Log.hh"
+#include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
 
 namespace Minic {
 auto LLVMWrapper::getType(DataType Type) -> llvm::Type * {
@@ -92,5 +94,15 @@ auto LLVMWrapper::load(llvm::Value *&Val) -> void {
   }
   panic("Function cannot be loaded");
   return;
+}
+
+auto LLVMWrapper::getPtrType(llvm::Value *Val) -> llvm::Type * {
+  if (llvm::isa<llvm::AllocaInst>(Val)) {
+    return llvm::dyn_cast<llvm::AllocaInst>(Val)->getAllocatedType();
+  } else if (llvm::isa<llvm::GlobalVariable>(Val)) {
+    return llvm::dyn_cast<llvm::GlobalVariable>(Val)->getValueType();
+  }
+  panic("Not one of {AllocaInst *, GlobalVariable *}");
+  return nullptr;
 }
 } // namespace Minic

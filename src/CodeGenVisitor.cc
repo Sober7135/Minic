@@ -302,8 +302,10 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
       panic("Assign to RValue is not allowed..");
     }
     // The LHS is AllocaInst * , use getAllocatedType to get inner Type.
-    LW->implicitConvert(
-        RHS, llvm::dyn_cast<llvm::AllocaInst>(LHS)->getAllocatedType());
+    // LW->implicitConvert(
+    //     RHS, llvm::dyn_cast<llvm::AllocaInst>(LHS)->getAllocatedType());
+    LW->implicitConvert(RHS, LW->getPtrType(LHS));
+
     LW->Builder->CreateStore(RHS, LHS);
     // Value of assignment expression is RHS
     TheValue = RHS;

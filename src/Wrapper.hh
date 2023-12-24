@@ -47,5 +47,6 @@ public:
   auto getDefaultConstant(llvm::Type *Type) -> llvm::Constant *;
   auto implicitConvert(llvm::Value *&Val, llvm::Type *DestTy) -> void;
   auto load(llvm::Value *&Val) -> void;
+  auto getPtrType(llvm::Value *Val) -> llvm::Type *;
 };
 } // namespace Minic

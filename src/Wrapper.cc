@@ -1,7 +1,13 @@
 #include "Wrapper.hh"
 #include "Log.hh"
+#include "Type.hh"
+#include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
+#include <llvm/Support/Casting.h>
+#include <llvm/Support/raw_ostream.h>
+#include <ranges>
+#include <vector>
 
 namespace Minic {
 auto LLVMWrapper::getType(DataType Type) -> llvm::Type * {
@@ -82,7 +88,7 @@ auto LLVMWrapper::implicitConvert(llvm::Value *&Val, llvm::Type *DestTy)
   }
 }
 
-auto LLVMWrapper::load(llvm::Value *&Val) -> void {
+auto LLVMWrapper::load(llvm::Value *&Val, llvm::Type *Type) -> void {
   if (llvm::isa<llvm::AllocaInst>(Val)) {
     Val = Builder->CreateLoad(
         llvm::dyn_cast<llvm::AllocaInst>(Val)->getAllocatedType(), Val);
@@ -90,6 +96,10 @@ auto LLVMWrapper::load(llvm::Value *&Val) -> void {
   } else if (llvm::isa<llvm::GlobalVariable>(Val)) {
     Val = Builder->CreateLoad(
         llvm::dyn_cast<llvm::GlobalVariable>(Val)->getValueType(), Val);
+    return;
+  } else {
+    // TODO
+    Val = Builder->CreateLoad(getType(DataType::Int), Val);
     return;
   }
   panic("Function cannot be loaded");
@@ -102,7 +112,17 @@ auto LLVMWrapper::getPtrType(llvm::Value *Val) -> llvm::Type * {
   } else if (llvm::isa<llvm::GlobalVariable>(Val)) {
     return llvm::dyn_cast<llvm::GlobalVariable>(Val)->getValueType();
   }
-  panic("Not one of {AllocaInst *, GlobalVariable *}");
+
   return nullptr;
+}
+
+auto LLVMWrapper::getArrayType(llvm::Type *Type,
+                               const std::vector<int> &Dimension)
+    -> llvm::Type * {
+  auto *AT = Type;
+  for (const auto &i : Dimension | std::views::reverse) {
+    AT = llvm::ArrayType::get(AT, i);
+  }
+  return AT;
 }
 } // namespace Minic

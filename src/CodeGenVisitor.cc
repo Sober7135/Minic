@@ -73,6 +73,104 @@ auto CodeGenVisitor::visitPrototype(FunctionDecl *Node) -> llvm::Function * {
   return F;
 }
 
+auto CodeGenVisitor::visitGlobalVariable(llvm::Type *Type, VarDecl *Node)
+    -> void {
+  for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
+    llvm::Constant *TheInitializer = nullptr;
+    auto *AllocaType = Type;
+
+    if (Node->TheDeclaratorList[i]->isArray()) {
+      if (Node->TheInitializerList[i]) {
+        TheInitializer = visitArrayConstantInitilizer(
+            Type, Node->TheInitializerList[i].get());
+      } else {
+        TheInitializer = llvm::ConstantAggregateZero::get(AllocaType);
+      }
+      AllocaType =
+          LW->getArrayType(Type, Node->TheDeclaratorList[i]->Dimension);
+    } else {
+      if (Node->TheInitializerList[i]) {
+        // Have initializer
+        auto *Val = getValue(Node->TheInitializerList[i].get());
+        if (!Val) {
+          panic("Failed to generate the initializer");
+        }
+        LW->implicitConvert(Val, Type);
+        TheInitializer = static_cast<llvm::Constant *>(Val);
+        if (!TheInitializer) {
+          panic("Failed to generate the initializer, static_cast");
+        }
+      } else {
+        TheInitializer = LW->getDefaultConstant(Type);
+      }
+    }
+
+    auto Name = Node->TheDeclaratorList[i]->Name;
+    auto *GV = new llvm::GlobalVariable(*LW->Mod.get(), AllocaType, false,
+                                        llvm::GlobalValue::ExternalLinkage,
+                                        TheInitializer, Name);
+    Current->Add(Name, GV);
+  }
+}
+
+auto CodeGenVisitor::visitLocalVariable(llvm::Type *Type, VarDecl *Node)
+    -> void {
+  auto *TheFunction = LW->Builder->GetInsertBlock()->getParent();
+  auto *AllocaType = Type;
+
+  for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
+    llvm::Value *TheInitializer = nullptr;
+    if (Node->TheDeclaratorList[i]->isArray()) {
+      if (Node->TheInitializerList[i]) {
+        // TODO
+      }
+      AllocaType =
+          LW->getArrayType(Type, Node->TheDeclaratorList[i]->Dimension);
+    } else {
+      if (Node->TheInitializerList[i]) {
+        // Have initializer
+        auto *Val = getValue(Node->TheInitializerList[i].get());
+        if (!Val) {
+          panic("Failed to generate the initializer");
+        }
+        LW->implicitConvert(Val, Type);
+      }
+    }
+
+    auto Name = Node->TheDeclaratorList[i]->Name;
+    auto *Alloca =
+        LLVMWrapper::CreateEntryBlockAlloca(TheFunction, AllocaType, Name);
+    // LOL
+    if (TheInitializer) {
+      LW->Builder->CreateStore(TheInitializer, Alloca);
+    }
+
+    Current->Add(Name, Alloca);
+  }
+}
+
+auto CodeGenVisitor::visitArrayConstantInitilizer(llvm::Type *Type,
+                                                  Initializer *Init)
+    -> llvm::Constant * {
+  // check size
+  if (Init->isLeaf()) {
+    auto *Val = getValue(Init->TheExpr.get());
+    if (!llvm::isa<llvm::Constant>(Val)) {
+      panic("not a constant expr");
+    }
+    LW->implicitConvert(Val, Type);
+    return llvm::dyn_cast<llvm::Constant>(Val);
+  }
+  std::vector<llvm::Constant *> List;
+  for (const auto &c : Init->Children) {
+    auto *Val = visitArrayConstantInitilizer(Type, c.get());
+    List.emplace_back(Val);
+  }
+
+  return llvm::ConstantArray::get(
+      llvm::ArrayType::get(Type, Init->Children.size()), List);
+}
+
 /* =============================== CodeGenVisitor =========================== */
 /* =================================== Public =============================== */
 auto CodeGenVisitor::Visit(const Program &TheProgram) -> void {
@@ -89,63 +187,16 @@ auto CodeGenVisitor::Visit(Declaration *Node) -> void { Node->accept(this); }
 auto CodeGenVisitor::Visit(VarDecl *Node) -> void {
   checkVariableRedefinition(Node->TheDeclaratorList);
 
-  // TODO : Check LiteralExpr Type `int x = 1.3;`
   // TODO : Handle Array
   /// DataType Identifier = Expr
   auto *Type = LW->getType(Node->getType());
 
   if (Current->isTop()) {
-    for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
-      llvm::Constant *TheInitializer = nullptr;
-      if (Node->TheInitializerList[i]) {
-        // Have initializer
-        auto *Val = getValue(Node->TheInitializerList[i].get());
-
-        if (!Val) {
-          panic("Failed to generate the initializer");
-        }
-        LW->implicitConvert(Val, Type);
-        TheInitializer = static_cast<llvm::Constant *>(Val);
-        if (!TheInitializer) {
-          panic("Failed to generate the initializer, static_cast");
-        }
-      } else {
-        TheInitializer = LW->getDefaultConstant(Type);
-      }
-      auto Name = Node->TheDeclaratorList[i]->Name;
-      auto *GV = new llvm::GlobalVariable(*LW->Mod.get(), Type, false,
-                                          llvm::GlobalValue::ExternalLinkage,
-                                          TheInitializer, Name);
-      Current->Add(Name, GV);
-    }
+    visitGlobalVariable(Type, Node);
     return;
   }
 
-  auto *TheFunction = LW->Builder->GetInsertBlock()->getParent();
-
-  for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
-    llvm::Constant *TheInitializer = nullptr;
-    if (Node->TheInitializerList[i]) {
-      // Have initializer
-      auto *Val = getValue(Node->TheInitializerList[i].get());
-      if (!Val) {
-        panic("Failed to generate the initializer");
-      }
-      LW->implicitConvert(Val, Type);
-      TheInitializer = static_cast<llvm::Constant *>(Val);
-      if (!TheInitializer) {
-        panic("Failed to generate the initializer, static_cast");
-      }
-    }
-    auto Name = Node->TheDeclaratorList[i]->Name;
-    auto *Alloca = LLVMWrapper::CreateEntryBlockAlloca(TheFunction, Type, Name);
-    // LOL
-    if (TheInitializer) {
-      LW->Builder->CreateStore(TheInitializer, Alloca);
-    }
-
-    Current->Add(Name, Alloca);
-  }
+  visitLocalVariable(Type, Node);
 }
 
 auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
@@ -276,6 +327,41 @@ auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
   TheValue = LW->Builder->CreateCall(TheFunction, ArgVs);
 }
 
+auto CodeGenVisitor::Visit(PostfixExpr *Node) -> void {
+  const auto &VarName = Node->getName();
+  auto *Val = Current->Find(VarName);
+  if (!Val) {
+    panic("Unknown Variable " + VarName);
+  }
+  // TODO
+  auto *Casted = static_cast<llvm::GlobalVariable *>(Val);
+  if (!Casted) {
+    panic(VarName + " is not a variable stored in stack");
+  }
+  std::vector<llvm::Value *> IdxList(Node->Index.size() + 1);
+  IdxList[0] = llvm::ConstantInt::getIntegerValue(LW->getType(DataType::Int),
+                                                  llvm::APInt(32, 0));
+
+  for (size_t i = 0, end = Node->Index.size(); i != end; ++i) {
+    auto *Val = getValue(Node->Index[i].get());
+    IdxList[i + 1] = Val;
+  }
+  // llvm::outs() << Casted->getValueName() << "\n"
+  //              << Casted->getValueID() << "\n\n\n\n";
+  if (Casted->getValueType()->isArrayTy()) {
+    llvm::outs() << "Array\n\n\n";
+  } else if (Casted->getValueType()->isPointerTy()) {
+    llvm::outs() << "Pointer\n\n\n";
+  }
+
+  // TODO
+  TheValue =
+      // LW->Builder->CreateInBoundsGEP(Val->getType(), Val, IdxList);
+      LW->Builder->CreateInBoundsGEP(Casted->getValueType(), Casted, IdxList);
+
+  TheValue = Casted;
+}
+
 auto CodeGenVisitor::Visit(UnaryExpr *Node) -> void {}
 
 auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
@@ -298,10 +384,17 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
     }
     // The LHS is AllocaInst * , use getAllocatedType to get inner Type.
     // LW->implicitConvert(
+    // TODO
+    // FIXME
     //     RHS, llvm::dyn_cast<llvm::AllocaInst>(LHS)->getAllocatedType());
-    LW->implicitConvert(RHS, LW->getPtrType(LHS));
+    // LW->implicitConvert(RHS, LW->getPtrType(LHS));
+
+    RHS->dump();
+    LHS->dump();
 
     LW->Builder->CreateStore(RHS, LHS);
+    llvm::outs() << "\n\n\n\n";
+
     // Value of assignment expression is RHS
     TheValue = RHS;
     return;
@@ -511,14 +604,23 @@ auto CodeGenVisitor::Visit(CompoundStmt *Node) -> void {
   Current = Current->getParent();
 }
 
-auto CodeGenVisitor::Visit(Declarator *Node) -> void { panic(""); }
+auto CodeGenVisitor::Visit([[maybe_unused]] Declarator *Node) -> void {
+  panic("");
+}
 
 auto CodeGenVisitor::Visit(Initializer *Node) -> void {
   if (!Node) {
     return;
   }
   // TODO Handle Array
-  Visit(Node->TheExpr.get());
+  if (Node->isLeaf()) {
+    Visit(Node->TheExpr.get());
+  } else {
+    // isArray
+    std::vector<llvm::Value *> ArrayV;
+    TheInitializerList = std::vector<llvm::Value *>{};
+    Visit(Node->TheExpr.get());
+  }
 }
 
 } // namespace Minic

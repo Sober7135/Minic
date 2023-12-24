@@ -9,5 +9,5 @@ int main() {
   putInt(8);
   putInt(y);
   putInt(fx);
-  putInt(fy);;
+  putInt(fy);
 }

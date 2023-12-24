@@ -7,7 +7,9 @@
 #include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <llvm/IR/Constant.h>
 #include <llvm/IR/DataLayout.h>
+#include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Type.h>
@@ -26,6 +28,7 @@ class FunctionDecl;
 class Expr;
 class VariableExpr;
 class CallExpr;
+class PostfixExpr;
 class UnaryExpr;
 class BinaryExpr;
 class LiteralExpr;
@@ -58,6 +61,7 @@ public:
   virtual auto Visit(Expr *Node) -> void = 0;
   virtual auto Visit(VariableExpr *Node) -> void = 0;
   virtual auto Visit(CallExpr *Node) -> void = 0;
+  virtual auto Visit(PostfixExpr *Node) -> void = 0;
   virtual auto Visit(UnaryExpr *Node) -> void = 0;
   virtual auto Visit(BinaryExpr *Node) -> void = 0;
   virtual auto Visit(LiteralExpr *Node) -> void = 0;
@@ -99,6 +103,7 @@ public:
   auto Visit(Expr *Node) -> void override;
   auto Visit(VariableExpr *Node) -> void override;
   auto Visit(CallExpr *Node) -> void override;
+  auto Visit(PostfixExpr *Node) -> void override;
   auto Visit(UnaryExpr *Node) -> void override;
   auto Visit(BinaryExpr *Node) -> void override;
   auto Visit(LiteralExpr *Node) -> void override;
@@ -132,12 +137,17 @@ private:
   std::unique_ptr<Scope> TheScope;
   Scope *Current;
   llvm::Value *TheValue = nullptr;
+  std::vector<llvm::Value *> TheInitializerList;
 
   auto getValue(ASTNode *Node) -> llvm::Value *;
   void checkVariableRedefinition(const std::unique_ptr<Declarator> &D);
   void checkVariableRedefinition(
       const std::vector<std::unique_ptr<Declarator>> &DList);
   auto visitPrototype(FunctionDecl *Node) -> llvm::Function *;
+  auto visitGlobalVariable(llvm::Type *Type, VarDecl *Node) -> void;
+  auto visitLocalVariable(llvm::Type *Type, VarDecl *Node) -> void;
+  auto visitArrayConstantInitilizer(llvm::Type *Type, Initializer *Init)
+      -> llvm::Constant *;
 
 public:
   explicit CodeGenVisitor(const std::string &ModuleID)
@@ -155,6 +165,7 @@ public:
   auto Visit(Expr *Node) -> void override;
   auto Visit(VariableExpr *Node) -> void override;
   auto Visit(CallExpr *Node) -> void override;
+  auto Visit(PostfixExpr *Node) -> void override;
   auto Visit(UnaryExpr *Node) -> void override;
   auto Visit(BinaryExpr *Node) -> void override;
   auto Visit(LiteralExpr *Node) -> void override;

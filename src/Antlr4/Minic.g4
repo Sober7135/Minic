@@ -153,8 +153,13 @@ primary
 identifierExpr
     : Identifier
     | callExpr
+    | postfixExpr
     ;
 
+postfixExpr
+    : Identifier (LeftSquareBrace expr RightSquareBrace)*
+    ;
+    
 callExpr
     : Identifier LeftParen varList? RightParen
     ;

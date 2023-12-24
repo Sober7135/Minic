@@ -66,6 +66,10 @@ auto ASTPrinter::Visit(CallExpr *Node) -> void {
   Out << StringWrapper(std::string(*Node), I);
 }
 
+auto ASTPrinter::Visit(PostfixExpr *Node) -> void {
+  Out << StringWrapper(std::string(*Node), I) << '\n';
+}
+
 auto ASTPrinter::Visit(UnaryExpr *Node) -> void {
   Out << StringWrapper(std::string(*Node));
 }
@@ -92,6 +96,10 @@ auto ASTPrinter::Visit(Statement *Node) -> void { Node->accept(this); }
 
 auto ASTPrinter::Visit(ExprStmt *Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
+
+  I += 2;
+  Visit(Node->TheExpr.get());
+  I -= 2;
 }
 
 auto ASTPrinter::Visit(IfStmt *Node) -> void {

@@ -6,6 +6,7 @@ int main() {
   int y = 57;
   float f = 9.0;
   char z = '9';
+  x = 9;
   y = test();
   x = 9;
   putchar(x + 48);

@@ -30,4 +30,9 @@ FunctionDecl::operator std::string() {
   }
   return "FunctionDecl " + Name;
 }
+
+PostfixExpr::operator std::string() {
+  std::string Ret = "PostfixExpr";
+  return Ret;
+}
 } // namespace Minic

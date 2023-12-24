@@ -553,15 +553,29 @@ auto ASTBuilder::visitUnary(MinicParser::UnaryContext *ctx) -> std::any {
 
 auto ASTBuilder::visitIdentifierExpr(MinicParser::IdentifierExprContext *ctx)
     -> std::any {
-  if (ctx->callExpr() == nullptr) {
-    // VariableExpr
-    VisitedExpr = std::make_unique<VariableExpr>(ctx->Identifier()->getText());
-  } else {
+  if (ctx->callExpr()) {
     // CallExpr
     // Get VisitedExpr
     visitCallExpr(ctx->callExpr());
+  } else if (ctx->postfixExpr()) {
+    visitPostfixExpr(ctx->postfixExpr());
+  } else {
+    // VariableExpr
+    VisitedExpr = std::make_unique<VariableExpr>(ctx->Identifier()->getText());
   }
 
+  return nullptr;
+}
+
+auto ASTBuilder::visitPostfixExpr(MinicParser::PostfixExprContext *ctx)
+    -> std::any {
+  auto Name = ctx->Identifier()->getText();
+  std::vector<std::unique_ptr<Expr>> IndexList(ctx->expr().size());
+  for (size_t i = 0, end = IndexList.size(); i != end; ++i) {
+    visitExpr(ctx->expr(i));
+    IndexList[i] = std::move(VisitedExpr);
+  }
+  VisitedExpr = std::make_unique<PostfixExpr>(Name, std::move(IndexList));
   return nullptr;
 }
 

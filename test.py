@@ -27,10 +27,10 @@ def test(list):
         exit_code = os.system(command)
         if exit_code == 0:
             s += 1
-            print(f"{GREEN}TEST SUCCESS EXIT {exit_code}{RESET}")
+            print(f"{GREEN}TEST {item} SUCCESS EXIT {exit_code}{RESET}")
         else:
             f += 1
-            print(f"{RED}FAILURE EXIT {exit_code}{RESET}")
+            print(f"{RED}FAILURE {item} EXIT {exit_code}{RESET}")
     return s, f
 
 

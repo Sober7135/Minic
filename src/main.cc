@@ -6,6 +6,7 @@
 #include "Target.hh"
 #include "Visitor.hh"
 
+#include <cstdio>
 #include <fstream>
 #include <llvm/Support/raw_ostream.h>
 
@@ -29,7 +30,8 @@ auto main(int argc, char *argv[]) -> int {
 
   MinicParser Parser(&Tokens);
   auto *Program = Parser.program();
-  // llvm::outss() << Program->toStringTree(&Parser, true) << std::endl;
+  // llvm::outs() << Program->toStringTree(&Parser, true);
+  fflush(stdout);
   Minic::ASTBuilder TheASTBuilder(Program);
   TheASTBuilder.Build();
   auto &AST = TheASTBuilder.AST();

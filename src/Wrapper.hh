@@ -16,6 +16,7 @@
 #include <llvm/IR/Value.h>
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/raw_ostream.h>
+#include <vector>
 
 namespace Minic {
 class LLVMWrapper {
@@ -46,7 +47,9 @@ public:
   auto convertToBool(llvm::Value *&Val, std::string Name = "") -> void;
   auto getDefaultConstant(llvm::Type *Type) -> llvm::Constant *;
   auto implicitConvert(llvm::Value *&Val, llvm::Type *DestTy) -> void;
-  auto load(llvm::Value *&Val) -> void;
+  auto load(llvm::Value *&Val, llvm::Type *Type = nullptr) -> void;
   auto getPtrType(llvm::Value *Val) -> llvm::Type *;
+  auto getArrayType(llvm::Type *Type, const std::vector<int> &Dimension)
+      -> llvm::Type *;
 };
 } // namespace Minic

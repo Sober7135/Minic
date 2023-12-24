@@ -34,15 +34,16 @@ public:
 };
 
 class Declarator : public ASTNode {
+  bool IsArray = false;
+
 protected:
   std::string Name;
   std::vector<int> Dimension{}; // when is not array, it should be empty
-  bool IsArray = false;
 
 public:
   explicit Declarator(std::string Name) : Name(std::move(Name)) {}
   Declarator(std::string Name, std::vector<int> &&Dimension)
-      : Name(std::move(Name)), Dimension(Dimension), IsArray(true) {}
+      : IsArray(true), Name(std::move(Name)), Dimension(Dimension) {}
   [[nodiscard]] auto isArray() const -> bool { return IsArray; }
   [[nodiscard]] auto getName() const -> const std::string & { return Name; }
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
@@ -121,7 +122,7 @@ public:
 };
 
 /// CallExpr
-///   ::= Identifer '(' Args ')'
+///   ::= Identifier '(' Args ')'
 /// Args
 ///   ::= Expr, Args
 ///   ::= <Empty>
@@ -136,6 +137,26 @@ public:
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "CallExpr"; }
 
+  friend class CodeGenVisitor;
+};
+
+/// PostfixExpr
+///   ::= Identifier ('[' expr ']')*
+class PostfixExpr : public Expr {
+protected:
+  std::string Name;
+  std::vector<std::unique_ptr<Expr>> Index;
+
+public:
+  PostfixExpr(std::string Name, std::vector<std::unique_ptr<Expr>> &&Index)
+      : Name(std::move(Name)), Index(std::move(Index)) {
+    IsLValue = true;
+  }
+  auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
+  explicit operator std::string() override;
+  auto getName() const -> const std::string & { return Name; }
+
+  friend class ASTPrinter;
   friend class CodeGenVisitor;
 };
 
@@ -255,6 +276,7 @@ public:
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override { return "ExprStmt"; }
 
+  friend class ASTPrinter;
   friend class CodeGenVisitor;
 };
 

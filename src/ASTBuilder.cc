@@ -1,6 +1,7 @@
 #include "ASTBuilder.hh"
 #include "AST.hh"
 #include "MinicParser.h"
+#include "Token.h"
 #include "Type.hh"
 #include "tree/TerminalNode.h"
 
@@ -142,7 +143,7 @@ auto ASTBuilder::visitInitializer(MinicParser::InitializerContext *ctx)
   } else if (ctx->initializer().empty()) {
     // Has no children, it is a Expr
     // Get VistedExpr
-    visitExpr(ctx->expr());
+    visit(ctx->expr());
     VisitedInitializer = std::make_unique<Initializer>(std::move(VisitedExpr));
 
   } else {
@@ -261,7 +262,7 @@ auto ASTBuilder::visitCompoundStmt(MinicParser::CompoundStmtContext *ctx)
 /// VisitedStmt
 auto ASTBuilder::visitIfStmt(MinicParser::IfStmtContext *ctx) -> std::any {
   // Cond IfBody ElseBody
-  visitExpr(ctx->expr());
+  visit(ctx->expr());
   auto Cond = std::move(VisitedExpr);
 
   std::unique_ptr<Statement> IfBody = nullptr, ElseBody = nullptr;
@@ -285,7 +286,7 @@ auto ASTBuilder::visitIfStmt(MinicParser::IfStmtContext *ctx) -> std::any {
 auto ASTBuilder::visitWhileStmt(MinicParser::WhileStmtContext *ctx)
     -> std::any {
   // Get VisitedExpr
-  visitExpr(ctx->expr());
+  visit(ctx->expr());
   auto Cond = std::move(VisitedExpr);
 
   // Get VisitedCompoundStmt
@@ -306,7 +307,7 @@ auto ASTBuilder::visitWhileStmt(MinicParser::WhileStmtContext *ctx)
 /// VisitedStmt
 auto ASTBuilder::visitExprStmt(MinicParser::ExprStmtContext *ctx) -> std::any {
   // Get VisitedExpr
-  visitExpr(ctx->expr());
+  visit(ctx->expr());
   VisitedStmt = std::make_unique<ExprStmt>(std::move(VisitedExpr));
 
   return nullptr;
@@ -320,262 +321,122 @@ auto ASTBuilder::visitReturnStmt(MinicParser::ReturnStmtContext *ctx)
     return nullptr;
   }
   // Get VisitedExpr
-  visitExpr(ctx->expr());
+  visit(ctx->expr());
   VisitedStmt = std::make_unique<ReturnStmt>(std::move(VisitedExpr));
 
   return nullptr;
 }
 
 /// VisitedStmt
-auto ASTBuilder::visitBreakStmt(MinicParser::BreakStmtContext *ctx)
-    -> std::any {
+auto ASTBuilder::visitBreakStmt(
+    [[maybe_unused]] MinicParser::BreakStmtContext *ctx) -> std::any {
   VisitedStmt = std::make_unique<BreakStmt>();
   return nullptr;
 }
 
 /// VisitedStmt
-auto ASTBuilder::visitContinueStmt(MinicParser::ContinueStmtContext *ctx)
-    -> std::any {
+auto ASTBuilder::visitContinueStmt(
+    [[maybe_unused]] MinicParser::ContinueStmtContext *ctx) -> std::any {
   VisitedStmt = std::make_unique<ContinueStmt>();
   return nullptr;
 }
 
-/// Return: `std::unique_ptr<Expr>`
-// auto ASTBuilder::visitExpr(MinicParser::ExprContext *ctx) -> std::any
-// {
-//   return nullptr;
-// }
+auto ASTBuilder::visitBinaryExprHelper(antlr4::Token *Op,
+                                       MinicParser::ExprContext *LHS,
+                                       MinicParser::ExprContext *RHS) -> void {
+  visit(LHS);
+  auto lhs = std::move(VisitedExpr);
 
-auto ASTBuilder::visitAssignment(MinicParser::AssignmentContext *ctx)
+  visit(RHS);
+  auto rhs = std::move(VisitedExpr);
+
+  VisitedExpr = std::make_unique<BinaryExpr>(
+      String2BinaryOperator[Op->getText()], std::move(lhs), std::move(rhs));
+};
+
+auto ASTBuilder::visitBitwiseAndExpr(MinicParser::BitwiseAndExprContext *ctx)
     -> std::any {
-  // size must >= 1
-  auto size = ctx->children.size();
-  assert(size % 2 == 1);
-  size_t i = 0;
-  auto *TheEqualityCtx =
-      dynamic_cast<MinicParser::EqualityContext *>(ctx->children[i++]);
-
-  // Get VisitedExpr
-  visitEquality(TheEqualityCtx);
-  std::unique_ptr<Expr> LHS = std::move(VisitedExpr);
-
-  if (i < size) {
-    LHS->setLValue(true);
-  }
-
-  while (i < size) {
-    // Get binary operator
-    auto StringBinaryOperator =
-        dynamic_cast<antlr4::tree::TerminalNode *>(ctx->children[i++])
-            ->getText();
-    auto TheBinaryOperator = String2BinaryOperator[StringBinaryOperator];
-
-    // Get RHS
-    TheEqualityCtx =
-        dynamic_cast<MinicParser::EqualityContext *>(ctx->children[i++]);
-    visitEquality(TheEqualityCtx);
-    std::unique_ptr<Expr> RHS = std::move(VisitedExpr);
-
-    LHS = std::make_unique<BinaryExpr>(TheBinaryOperator, std::move(LHS),
-                                       std::move(RHS));
-  }
-  VisitedExpr = std::move(LHS);
-
+  visitBinaryExprHelper(ctx->Op, ctx->LHS, ctx->RHS);
   return nullptr;
 }
 
-/// VisitedExpr
-auto ASTBuilder::visitEquality(MinicParser::EqualityContext *ctx) -> std::any {
-  // size must >= 1
-  auto size = ctx->children.size();
-  assert(size % 2 == 1);
-  size_t i = 0;
-  auto *TheComparisonCtx =
-      dynamic_cast<MinicParser::ComparisonContext *>(ctx->children[i++]);
-
-  // Get VisitedExpr
-  visitComparison(TheComparisonCtx);
-  std::unique_ptr<Expr> LHS = std::move(VisitedExpr);
-
-  while (i < size) {
-    // Get binary operator
-    auto StringBinaryOperator =
-        dynamic_cast<antlr4::tree::TerminalNode *>(ctx->children[i++])
-            ->getText();
-    auto TheBinaryOperator = String2BinaryOperator[StringBinaryOperator];
-
-    // Get RHS
-    TheComparisonCtx =
-        dynamic_cast<MinicParser::ComparisonContext *>(ctx->children[i++]);
-    visitComparison(TheComparisonCtx);
-    std::unique_ptr<Expr> RHS = std::move(VisitedExpr);
-
-    LHS = std::make_unique<BinaryExpr>(TheBinaryOperator, std::move(LHS),
-                                       std::move(RHS));
-  }
-  VisitedExpr = std::move(LHS);
-
-  return nullptr;
-}
-
-/// VisitedExpr
-auto ASTBuilder::visitComparison(MinicParser::ComparisonContext *ctx)
+auto ASTBuilder::visitBitwiseOrExpr(MinicParser::BitwiseOrExprContext *ctx)
     -> std::any {
-  // size must >= 1
-  auto size = ctx->children.size();
-  assert(size % 2 == 1);
-  size_t i = 0;
-  auto *TheTermCtx =
-      dynamic_cast<MinicParser::TermContext *>(ctx->children[i++]);
-
-  // Store in VisitedExpr
-  visitTerm(TheTermCtx);
-  std::unique_ptr<Expr> LHS = std::move(VisitedExpr);
-
-  while (i < size) {
-    // Get binary operator
-    auto StringBinaryOperator =
-        dynamic_cast<antlr4::tree::TerminalNode *>(ctx->children[i++])
-            ->getText();
-    auto TheBinaryOperator = String2BinaryOperator[StringBinaryOperator];
-
-    TheTermCtx = dynamic_cast<MinicParser::TermContext *>(ctx->children[i++]);
-    // Store in VisitedExpr
-    visitTerm(TheTermCtx);
-    std::unique_ptr<Expr> RHS = std::move(VisitedExpr);
-    LHS = std::make_unique<BinaryExpr>(TheBinaryOperator, std::move(LHS),
-                                       std::move(RHS));
-  }
-
-  VisitedExpr = std::move(LHS);
+  visitBinaryExprHelper(ctx->Op, ctx->LHS, ctx->RHS);
   return nullptr;
 }
 
-auto ASTBuilder::visitTerm(MinicParser::TermContext *ctx) -> std::any {
-  // size must >= 1
-  auto size = ctx->children.size();
-  assert(size % 2 == 1);
-  size_t i = 0;
-  auto *TheFactorCtx =
-      dynamic_cast<MinicParser::FactorContext *>(ctx->children[i++]);
-
-  // Get VisitedExpr
-  visitFactor(TheFactorCtx);
-  std::unique_ptr<Expr> LHS = std::move(VisitedExpr);
-
-  while (i < size) {
-    // Get binary operator
-    auto StringBinaryOperator =
-        dynamic_cast<antlr4::tree::TerminalNode *>(ctx->children[i++])
-            ->getText();
-    auto TheBinaryOperator = String2BinaryOperator[StringBinaryOperator];
-
-    // Get RHS
-    TheFactorCtx =
-        dynamic_cast<MinicParser::FactorContext *>(ctx->children[i++]);
-    visitFactor(TheFactorCtx);
-    std::unique_ptr<Expr> RHS = std::move(VisitedExpr);
-
-    LHS = std::make_unique<BinaryExpr>(TheBinaryOperator, std::move(LHS),
-                                       std::move(RHS));
-  }
-  VisitedExpr = std::move(LHS);
-
+auto ASTBuilder::visitMulModDivExpr(MinicParser::MulModDivExprContext *ctx)
+    -> std::any {
+  visitBinaryExprHelper(ctx->Op, ctx->LHS, ctx->RHS);
   return nullptr;
 }
 
-auto ASTBuilder::visitFactor(MinicParser::FactorContext *ctx) -> std::any {
-  // size must >= 1
-  auto size = ctx->children.size();
-  assert(size % 2 == 1);
-  size_t i = 0;
-  auto *TheUnaryCtx =
-      dynamic_cast<MinicParser::UnaryContext *>(ctx->children[i++]);
-
-  // Get VisitedExpr
-  visitUnary(TheUnaryCtx);
-  std::unique_ptr<Expr> LHS = std::move(VisitedExpr);
-
-  while (i < size) {
-    // Get binary operator
-    auto StringBinaryOperator =
-        dynamic_cast<antlr4::tree::TerminalNode *>(ctx->children[i++])
-            ->getText();
-    auto TheBinaryOperator = String2BinaryOperator[StringBinaryOperator];
-
-    // Get RHS
-    TheUnaryCtx = dynamic_cast<MinicParser::UnaryContext *>(ctx->children[i++]);
-    visitUnary(TheUnaryCtx);
-    std::unique_ptr<Expr> RHS = std::move(VisitedExpr);
-    LHS = std::make_unique<BinaryExpr>(TheBinaryOperator, std::move(LHS),
-                                       std::move(RHS));
-  }
-  VisitedExpr = std::move(LHS);
-
+auto ASTBuilder::visitRelationalENEExpr(
+    MinicParser::RelationalENEExprContext *ctx) -> std::any {
+  visitBinaryExprHelper(ctx->Op, ctx->LHS, ctx->RHS);
   return nullptr;
 }
 
-/// VisitedExpr
-auto ASTBuilder::visitUnary(MinicParser::UnaryContext *ctx) -> std::any {
-  if (ctx->unary()) {
-    // (Plus | Minus) unary
-    auto Operator =
-        dynamic_cast<antlr4::tree::TerminalNode *>(ctx->children[0])->getText();
-    auto TheUnaryOperator = String2UnaryOperator[Operator];
-
-    // Get VisitedExpr
-    visitUnary(ctx->unary());
-    auto TheUnaryExpr = std::move(VisitedExpr);
-    VisitedExpr =
-        std::make_unique<UnaryExpr>(TheUnaryOperator, std::move(TheUnaryExpr));
-  } else {
-    // primary
-    // Get VisitedExpr
-    visitPrimary(ctx->primary());
-  }
+auto ASTBuilder::visitUnaryExpr(MinicParser::UnaryExprContext *ctx)
+    -> std::any {
+  visit(ctx->expr());
+  auto Expr = std::move(VisitedExpr);
+  VisitedExpr = std::make_unique<UnaryExpr>(
+      String2UnaryOperator[ctx->Op->getText()], std::move(Expr));
   return nullptr;
 }
 
-// auto ASTBuilder::visitPrimary(MinicParser::PrimaryContext *ctx)
-//     -> std::any {
-//   if (!ctx->identifierExpr()) {
-//     auto TheIdentifierExpr = std::move(
-//         visitIdentifierExpr(ctx->identifierExpr()).as<std::unique_ptr<Expr>>());
-//     return TheIdentifierExpr;
-//   } else if (!ctx->literal()) {
-//       auto
-//   } else {
-//     // parenExpr
-//   }
+auto ASTBuilder::visitLogicalAndExpr(MinicParser::LogicalAndExprContext *ctx)
+    -> std::any {
+  visitBinaryExprHelper(ctx->Op, ctx->LHS, ctx->RHS);
+  return nullptr;
+}
 
-//   assert(0 && "Fucking here");
-// }
+auto ASTBuilder::visitRelationalLGExpr(
+    MinicParser::RelationalLGExprContext *ctx) -> std::any {
+  visitBinaryExprHelper(ctx->Op, ctx->LHS, ctx->RHS);
+  return nullptr;
+}
+
+auto ASTBuilder::visitAssignExpr(MinicParser::AssignExprContext *ctx)
+    -> std::any {
+  visit(ctx->LHS);
+  auto LHS = std::move(VisitedExpr);
+  LHS->setLValue(true);
+
+  visit(ctx->RHS);
+  auto RHS = std::move(VisitedExpr);
+
+  VisitedExpr =
+      std::make_unique<BinaryExpr>(String2BinaryOperator[ctx->Op->getText()],
+                                   std::move(LHS), std::move(RHS));
+  return nullptr;
+}
+
+auto ASTBuilder::visitLogicalOrExpr(MinicParser::LogicalOrExprContext *ctx)
+    -> std::any {
+  visitBinaryExprHelper(ctx->Op, ctx->LHS, ctx->RHS);
+  return nullptr;
+}
 
 auto ASTBuilder::visitIdentifierExpr(MinicParser::IdentifierExprContext *ctx)
     -> std::any {
-  if (ctx->callExpr()) {
-    // CallExpr
-    // Get VisitedExpr
-    visitCallExpr(ctx->callExpr());
-  } else if (ctx->arraySubscriptExpr()) {
-    visitArraySubscriptExpr(ctx->arraySubscriptExpr());
-  } else {
-    // VariableExpr
-    VisitedExpr = std::make_unique<VariableExpr>(ctx->Identifier()->getText());
-  }
-
+  VisitedExpr = std::make_unique<VariableExpr>(ctx->Identifier()->getText());
   return nullptr;
 }
 
-auto ASTBuilder::visitArraySubscriptExpr(MinicParser::ArraySubscriptExprContext *ctx)
-    -> std::any {
-  auto Name = ctx->Identifier()->getText();
+auto ASTBuilder::visitArraySubscriptExpr(
+    MinicParser::ArraySubscriptExprContext *ctx) -> std::any {
+  visit(ctx->Base);
+  std::unique_ptr<Expr> Base = std::move(VisitedExpr);
   std::vector<std::unique_ptr<Expr>> IndexList(ctx->expr().size());
   for (size_t i = 0, end = IndexList.size(); i != end; ++i) {
-    visitExpr(ctx->expr(i));
+    visit(ctx->expr(i));
     IndexList[i] = std::move(VisitedExpr);
   }
-  VisitedExpr = std::make_unique<ArraySubscriptExpr>(Name, std::move(IndexList));
+  VisitedExpr = std::make_unique<ArraySubscriptExpr>(std::move(Base),
+                                                     std::move(IndexList));
   return nullptr;
 }
 
@@ -593,12 +454,24 @@ auto ASTBuilder::visitCallExpr(MinicParser::CallExprContext *ctx) -> std::any {
   return nullptr;
 }
 
+auto ASTBuilder::visitBitwiseXorExpr(MinicParser::BitwiseXorExprContext *ctx)
+    -> std::any {
+  visitBinaryExprHelper(ctx->Op, ctx->LHS, ctx->RHS);
+  return nullptr;
+}
+
+auto ASTBuilder::visitAddSubExpr(MinicParser::AddSubExprContext *ctx)
+    -> std::any {
+  visitBinaryExprHelper(ctx->Op, ctx->LHS, ctx->RHS);
+  return nullptr;
+}
+
 // VisitedVarList
 auto ASTBuilder::visitVarList(MinicParser::VarListContext *ctx) -> std::any {
   std::vector<std::unique_ptr<Expr>> TheVarList;
   for (auto &TheExprCtx : ctx->expr()) {
     // Get VisitedExpr
-    visitExpr(TheExprCtx);
+    visit(TheExprCtx);
     TheVarList.emplace_back(std::move(VisitedExpr));
   }
 
@@ -607,7 +480,7 @@ auto ASTBuilder::visitVarList(MinicParser::VarListContext *ctx) -> std::any {
 }
 
 // auto ASTBuilder::visitParenExpr(MinicParser::ParenExprContext *ctx)
-//     -> std::any {
+// -> std::any {
 
 // }
 

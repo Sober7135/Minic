@@ -144,16 +144,15 @@ public:
 ///   ::= Identifier ('[' expr ']')*
 class ArraySubscriptExpr : public Expr {
 protected:
-  std::string Name;
+  std::unique_ptr<Expr> Base;
   std::vector<std::unique_ptr<Expr>> Index;
 
 public:
-  ArraySubscriptExpr(std::string Name,
+  ArraySubscriptExpr(std::unique_ptr<Expr> Base,
                      std::vector<std::unique_ptr<Expr>> &&Index)
-      : Name(std::move(Name)), Index(std::move(Index)) {}
+      : Base(std::move(Base)), Index(std::move(Index)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override;
-  auto getName() const -> const std::string & { return Name; }
 
   friend class ASTPrinter;
   friend class CodeGenVisitor;

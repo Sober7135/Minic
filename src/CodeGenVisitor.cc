@@ -328,40 +328,41 @@ auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
 }
 
 auto CodeGenVisitor::Visit(ArraySubscriptExpr *Node) -> void {
-  const auto &VarName = Node->getName();
-  auto *Val = Current->Find(VarName);
-  if (!Val) {
-    panic("Unknown Variable " + VarName);
-  }
-  // TODO
-  auto *Casted = static_cast<llvm::GlobalVariable *>(Val);
-  if (!Casted) {
-    panic(VarName + " is not a variable stored in stack");
-  }
-  std::vector<llvm::Value *> IdxList(Node->Index.size() + 1);
-  IdxList[0] = llvm::ConstantInt::getIntegerValue(LW->getType(DataType::Int),
-                                                  llvm::APInt(32, 0));
+  // const auto &VarName = Node->Base;
+  // auto *Val = Current->Find(VarName);
+  // if (!Val) {
+  //   panic("Unknown Variable " + VarName);
+  // }
+  // // TODO
+  // auto *Casted = static_cast<llvm::GlobalVariable *>(Val);
+  // if (!Casted) {
+  //   panic(VarName + " is not a variable stored in stack");
+  // }
+  // std::vector<llvm::Value *> IdxList(Node->Index.size() + 1);
+  // IdxList[0] = llvm::ConstantInt::getIntegerValue(LW->getType(DataType::Int),
+  //                                                 llvm::APInt(32, 0));
 
-  for (size_t i = 0, end = Node->Index.size(); i != end; ++i) {
-    auto *Val = getValue(Node->Index[i].get());
-    IdxList[i + 1] = Val;
-  }
-  // llvm::outs() << Casted->getValueName() << "\n"
-  //              << Casted->getValueID() << "\n\n\n\n";
-  if (Casted->getValueType()->isArrayTy()) {
-    llvm::outs() << "Array\n\n\n";
-  } else if (Casted->getValueType()->isPointerTy()) {
-    llvm::outs() << "Pointer\n\n\n";
-  }
+  // for (size_t i = 0, end = Node->Index.size(); i != end; ++i) {
+  //   auto *Val = getValue(Node->Index[i].get());
+  //   IdxList[i + 1] = Val;
+  // }
+  // // llvm::outs() << Casted->getValueName() << "\n"
+  // //              << Casted->getValueID() << "\n\n\n\n";
+  // if (Casted->getValueType()->isArrayTy()) {
+  //   llvm::outs() << "Array\n\n\n";
+  // } else if (Casted->getValueType()->isPointerTy()) {
+  //   llvm::outs() << "Pointer\n\n\n";
+  // }
 
-  // TODO
-  TheValue =
-      // LW->Builder->CreateInBoundsGEP(Val->getType(), Val, IdxList);
-      LW->Builder->CreateInBoundsGEP(Casted->getValueType(), Casted, IdxList);
+  // // TODO
+  // TheValue =
+  //     // LW->Builder->CreateInBoundsGEP(Val->getType(), Val, IdxList);
+  //     LW->Builder->CreateInBoundsGEP(Casted->getValueType(), Casted,
+  //     IdxList);
 
-  if (!Node->isLValue()) {
-    LW->load(TheValue);
-  }
+  // if (!Node->isLValue()) {
+  //   LW->load(TheValue);
+  // }
 }
 
 auto CodeGenVisitor::Visit(UnaryExpr *Node) -> void {}
@@ -446,6 +447,9 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
       TheValue = LW->Builder->CreateSDiv(LHS, RHS, "divtmp");
     }
     break;
+  case Minic::BinaryOperator::Precent:
+    unimplement();
+    break;
   case Minic::BinaryOperator::LogicalAnd:
     LW->convertToBool(LHS);
     LW->convertToBool(RHS);
@@ -497,6 +501,15 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
     } else {
       TheValue = LW->Builder->CreateICmpNE(LHS, RHS, "lesstmp");
     }
+    break;
+  case Minic::BinaryOperator::BitwiseAnd:
+    unimplement();
+    break;
+  case Minic::BinaryOperator::BitwiseOr:
+    unimplement();
+    break;
+  case Minic::BinaryOperator::BitwiseXor:
+    unimplement();
     break;
   }
 }

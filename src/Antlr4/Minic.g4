@@ -114,63 +114,83 @@ breakStmt
 continueStmt
     : Continue Semicolon
     ;
-
+    
 expr
-    : assignment
+    : Identifier LeftParen varList? RightParen                          # CallExpr
+    | Identifier                                                        # IdentifierExpr
+    | literal                                                           # LiteralExpr
+    | Base=expr LeftSquareBrace expr RightSquareBrace                   # ArraySubscriptExpr
+    | Op=(Plus | Minus | LogicalNot | BitwiseNot) expr                  # UnaryExpr
+    | LHS=expr Op=(Asterisk | Percent | Divide) RHS=expr                # MulModDivExpr
+    | LHS=expr Op=(Plus | Minus) RHS=expr                               # AddSubExpr
+    // | LHS=expr Op=() bitwise left shift and so on
+    | LHS=expr Op=(Greater | GreaterEqual | Less | LessEqual) RHS=expr  # RelationalLGExpr
+    | LHS=expr Op=(Equal | NotEqual) RHS=expr                           # RelationalENEExpr
+    | LHS=expr Op=BitwiseAnd RHS=expr                                   # BitwiseAndExpr
+    | LHS=expr Op=BitwiseXor RHS=expr                                   # BitwiseXorExpr
+    | LHS=expr Op=BitwiseOr RHS=expr                                    # BitwiseOrExpr
+    | LHS=expr Op=LogicalAnd RHS=expr                                   # LogicalAndExpr
+    | LHS=expr Op=LogicalOr RHS=expr                                    # LogicalOrExpr
+    | LHS=expr Op=Assign RHS=expr                                       # AssignExpr
+    | '(' expr ')'                                                      # ParenExpr
     ;
 
-assignment
-    : equality (Assign equality)*
-    ;
+// expr
+//     : assignment
+//     ;
 
-equality
-    : comparison ((NotEqual | Equal) comparison)*
-    ;
+// assignment
+//     : equality (Assign equality)*
+//     ;
+
+// equality
+//     : comparison ((NotEqual | Equal) comparison)*
+//     ;
     
-comparison
-    : term ((Less| LessEqual | Greater | GreaterEqual) term) *
-    ;
+// comparison
+//     : term ((Less| LessEqual | Greater | GreaterEqual) term) *
+//     ;
 
-term
-    : factor ((Plus | Minus) factor) *
-    ;
+// term
+//     : factor ((Plus | Minus) factor) *
+//     ;
 
-factor
-    : unary (( Multiply | Divide) unary)*
-    ;
+// factor
+//     : unary (( Asterisk | Divide) unary)*
+//     ;
 
-unary
-    : (Plus | Minus) unary
-    | primary
-    ;
+// unary
+//     : (Plus | Minus) unary
+//     | primary
+//     ;
 
-primary
-    : identifierExpr
-    | literal
-    | parenExpr
-    ;
+// primary
+//     : identifierExpr
+//     | literal
+//     | parenExpr
+//     ;
 
-identifierExpr
-    : Identifier
-    | callExpr
-    | arraySubscriptExpr
-    ;
+// identifierExpr
+//     : Identifier
+//     | callExpr
+//     | arraySubscriptExpr
+//     ;
 
-arraySubscriptExpr
-    : Identifier (LeftSquareBrace expr RightSquareBrace)*
-    ;
+// arraySubscriptExpr
+//     : expr (LeftSquareBrace expr RightSquareBrace)*
+//     ;
     
-callExpr
-    : Identifier LeftParen varList? RightParen
-    ;
+// callExpr
+//     : Identifier LeftParen varList? RightParen
+//     ;
 
 varList
     : expr (Comma expr)*
     ;
     
-parenExpr
-    : LeftBrace expr RightBrace
-    ;    
+// parenExpr
+//     : LeftBrace expr RightBrace
+//     ;    
 
 // Token
 Int
@@ -228,7 +248,7 @@ Plus
 Minus
     : '-' 
     ;
-Multiply
+Asterisk
     : '*' 
     ;
 Divide
@@ -252,11 +272,26 @@ Greater
 GreaterEqual
     : '>=' 
     ;
-And 
+LogicalAnd 
     : '&&' 
     ;
-Or 
+BitwiseAnd
+    : '&'
+    ;
+LogicalOr 
     : '||' 
+    ;
+BitwiseOr
+    : '|'
+    ;
+LogicalNot
+    : '!'
+    ;
+BitwiseNot
+    : '~'
+    ;
+BitwiseXor
+    : '^'
     ;
 Period
     : '.' 
@@ -290,6 +325,9 @@ SingleQuote
     ;
 DoubleQuote
     : '"' 
+    ;
+Percent
+    : '%'
     ;
 Identifier
     : NonDigit+ (NonDigit | Digit)*

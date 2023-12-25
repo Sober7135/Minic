@@ -27,14 +27,21 @@ enum class BinaryOperator {
   Minus,
   Multiply,
   Divide,
+  Precent,
 
   LogicalOr,
   LogicalAnd,
+
+  BitwiseAnd,
+  BitwiseOr,
+  BitwiseXor,
 };
 
 enum class UnaryOperator {
   Plus,
   Minus,
+  BitwiseNot,
+  LogicalNot,
 };
 
 inline auto TokenType2DataType(TokenType token) -> DataType {
@@ -70,14 +77,17 @@ inline std::map<std::string, BinaryOperator> String2BinaryOperator{
     {">", BinaryOperator::Greater},    {">=", BinaryOperator::GreaterEqual},
     {"!=", BinaryOperator::NotEqual},  {"+", BinaryOperator::Plus},
     {"-", BinaryOperator::Minus},      {"*", BinaryOperator::Multiply},
-    {"/", BinaryOperator::Divide},     {"||", BinaryOperator::LogicalOr},
-    {"&&", BinaryOperator::LogicalAnd},
-
+    {"%", BinaryOperator::Precent},    {"/", BinaryOperator::Divide},
+    {"||", BinaryOperator::LogicalOr}, {"&&", BinaryOperator::LogicalAnd},
+    {"&", BinaryOperator::BitwiseAnd}, {"|", BinaryOperator::BitwiseOr},
+    {"^", BinaryOperator::BitwiseXor},
 };
 
 inline std::map<std::string, UnaryOperator> String2UnaryOperator{
     {"+", UnaryOperator::Plus},
     {"-", UnaryOperator::Minus},
+    {"!", UnaryOperator::LogicalNot},
+    {"~", UnaryOperator::BitwiseNot},
 };
 
 } // namespace Minic

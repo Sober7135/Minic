@@ -359,7 +359,9 @@ auto CodeGenVisitor::Visit(PostfixExpr *Node) -> void {
       // LW->Builder->CreateInBoundsGEP(Val->getType(), Val, IdxList);
       LW->Builder->CreateInBoundsGEP(Casted->getValueType(), Casted, IdxList);
 
-  TheValue = Casted;
+  if (!Node->isLValue()) {
+    LW->load(TheValue);
+  }
 }
 
 auto CodeGenVisitor::Visit(UnaryExpr *Node) -> void {}

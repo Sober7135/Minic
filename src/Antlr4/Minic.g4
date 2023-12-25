@@ -119,7 +119,7 @@ expr
     : Identifier LeftParen varList? RightParen                          # CallExpr
     | Identifier                                                        # IdentifierExpr
     | literal                                                           # LiteralExpr
-    | Base=expr LeftSquareBrace expr RightSquareBrace                   # ArraySubscriptExpr
+    | Base=expr LeftSquareBrace Selector=expr RightSquareBrace          # ArraySubscriptExpr
     | Op=(Plus | Minus | LogicalNot | BitwiseNot) expr                  # UnaryExpr
     | LHS=expr Op=(Asterisk | Percent | Divide) RHS=expr                # MulModDivExpr
     | LHS=expr Op=(Plus | Minus) RHS=expr                               # AddSubExpr

@@ -148,6 +148,12 @@ private:
   auto visitLocalVariable(llvm::Type *Type, VarDecl *Node) -> void;
   auto visitArrayConstantInitilizer(llvm::Type *Type, Initializer *Init)
       -> llvm::Constant *;
+  auto visitArrayInitilizer(llvm::Type *Type, Initializer *Init)
+      -> std::vector<llvm::Value *>;
+  auto getArrayValueType(ArraySubscriptExpr *Node) -> llvm::Type *;
+  auto init(llvm::Type *Type, llvm::Value *Ptr,
+            const std::vector<llvm::Value *> &InitList,
+            const std::vector<int> &Dimension) const -> void;
 
 public:
   explicit CodeGenVisitor(const std::string &ModuleID)

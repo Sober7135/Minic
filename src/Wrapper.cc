@@ -88,7 +88,8 @@ auto LLVMWrapper::implicitConvert(llvm::Value *&Val, llvm::Type *DestTy)
   }
 }
 
-auto LLVMWrapper::load(llvm::Value *&Val, llvm::Type *Type) -> void {
+auto LLVMWrapper::load(llvm::Value *&Val, [[maybe_unused]] llvm::Type *Type)
+    -> void {
   if (llvm::isa<llvm::AllocaInst>(Val)) {
     Val = Builder->CreateLoad(
         llvm::dyn_cast<llvm::AllocaInst>(Val)->getAllocatedType(), Val);

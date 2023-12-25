@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+from ast import If
 import os
+import subprocess
 
 TEST_DIR = "./test/"
 TEST_ERR_DIR = "./test/err/"
@@ -18,6 +20,14 @@ def get_test_file(dir):
     return file_list
 
 
+def get_output(cmd):
+    return subprocess.getoutput(cmd)
+
+
+def removeExt(name: str):
+    return os.path.splitext(name)[0]
+
+
 def test(list):
     s = 0
     f = 0
@@ -27,10 +37,19 @@ def test(list):
         exit_code = os.system(command)
         if exit_code == 0:
             s += 1
-            print(f"{GREEN}TEST {item} SUCCESS EXIT {exit_code}{RESET}")
+            print(f"{GREEN}TEST {item} COMPILE SUCCESS EXIT {exit_code}{RESET}")
+            x = get_output(removeExt(item))
+            clang_cmd = "clang {} -o {} &> /dev/null && ./{}".format(
+                item, removeExt(item) + "_clang", removeExt(item) + "_clang"
+            )
+            y = get_output(clang_cmd)
+            if x == y:
+                print(f"{GREEN}TEST {item} EXECUTE SUCCESS EXIT {exit_code}{RESET}")
+            else:
+                print(f"{RED}EXECUTION FAILURE {item} EXIT {exit_code}{RESET}")
         else:
             f += 1
-            print(f"{RED}FAILURE {item} EXIT {exit_code}{RESET}")
+            print(f"{RED} FAILURE {item} EXIT {exit_code}{RESET}")
     return s, f
 
 

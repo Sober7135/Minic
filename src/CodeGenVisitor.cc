@@ -24,6 +24,7 @@
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/raw_ostream.h>
 #include <memory>
+#include <ranges>
 #include <string>
 #include <vector>
 
@@ -119,22 +120,37 @@ auto CodeGenVisitor::visitLocalVariable(llvm::Type *Type, VarDecl *Node)
   auto *AllocaType = Type;
 
   for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
-    llvm::Value *TheInitializer = nullptr;
     if (Node->TheDeclaratorList[i]->isArray()) {
+      std::vector<llvm::Value *> TheInitializer;
       if (Node->TheInitializerList[i]) {
-        // TODO
+        // TODO Check size
+        TheInitializer =
+            visitArrayInitilizer(Type, Node->TheInitializerList[i].get());
       }
       AllocaType =
           LW->getArrayType(Type, Node->TheDeclaratorList[i]->Dimension);
-    } else {
-      if (Node->TheInitializerList[i]) {
-        // Have initializer
-        auto *Val = getValue(Node->TheInitializerList[i].get());
-        if (!Val) {
-          panic("Failed to generate the initializer");
-        }
-        LW->implicitConvert(Val, Type);
+      auto Name = Node->TheDeclaratorList[i]->Name;
+      auto *Alloca =
+          LLVMWrapper::CreateEntryBlockAlloca(TheFunction, AllocaType, Name);
+      // LOL
+      if (!TheInitializer.empty()) {
+        // DO INIT
+        auto D = Node->TheDeclaratorList[i]->Dimension;
+        init(AllocaType, Alloca, TheInitializer,
+             Node->TheDeclaratorList[i]->Dimension);
       }
+
+      Current->Add(Name, Alloca);
+      continue;
+    }
+    llvm::Value *TheInitializer = nullptr;
+    if (Node->TheInitializerList[i]) {
+      // Have initializer
+      TheInitializer = getValue(Node->TheInitializerList[i].get());
+      if (!TheInitializer) {
+        panic("Failed to generate the initializer");
+      }
+      LW->implicitConvert(TheInitializer, Type);
     }
 
     auto Name = Node->TheDeclaratorList[i]->Name;
@@ -169,6 +185,76 @@ auto CodeGenVisitor::visitArrayConstantInitilizer(llvm::Type *Type,
 
   return llvm::ConstantArray::get(
       llvm::ArrayType::get(Type, Init->Children.size()), List);
+}
+
+auto CodeGenVisitor::visitArrayInitilizer(llvm::Type *Type, Initializer *Init)
+    -> std::vector<llvm::Value *> {
+  if (Init->isLeaf()) {
+    auto *Val = getValue(Init->TheExpr.get());
+    LW->implicitConvert(Val, Type);
+    return std::vector<llvm::Value *>{Val};
+  }
+
+  std::vector<llvm::Value *> List;
+  for (const auto &c : Init->Children) {
+    auto Val = visitArrayInitilizer(Type, c.get());
+    for (const auto &item : Val) {
+      List.emplace_back(item);
+    }
+  }
+  return List;
+}
+
+/// FIXME
+auto CodeGenVisitor::getArrayValueType(ArraySubscriptExpr *Node)
+    -> llvm::Type * {
+  auto *Ptr = Node->Base.get();
+  while (!VariableExpr::classof(Ptr)) {
+    Ptr = dynamic_cast<ArraySubscriptExpr *>(Ptr)->Base.get();
+  }
+  auto VarName = dynamic_cast<VariableExpr *>(Ptr)->getName();
+  auto *Ret = Current->Find(VarName);
+  llvm::Type *Type = nullptr;
+  if (llvm::isa<llvm::GlobalVariable>(Ret)) {
+    auto GV = llvm::dyn_cast<llvm::GlobalVariable>(Ret);
+    Type = GV->getValueType();
+  } else if (llvm::isa<llvm::AllocaInst>(Ret)) {
+    auto *Alloca = llvm::dyn_cast<llvm::AllocaInst>(Ret);
+    Type = Alloca->getAllocatedType();
+  }
+  while (Type->isArrayTy()) {
+    Type = Type->getArrayElementType();
+  }
+  return Type;
+}
+
+auto test(const std::vector<int> &Dimension, size_t index) -> std::vector<int> {
+  std::vector<int> Ret(Dimension.size(), 0);
+  for (int i = Dimension.size() - 1; i >= 0; i--) {
+    Ret[i] = index % Dimension[i];
+    index /= Dimension[i];
+  }
+  return Ret;
+}
+
+auto CodeGenVisitor::init(llvm::Type *Type, llvm::Value *Ptr,
+                          const std::vector<llvm::Value *> &InitList,
+                          const std::vector<int> &Dimension) const -> void {
+  std::vector<int> v(Dimension.size(), 0);
+  for (size_t i = 0, end = InitList.size(); i != end; ++i) {
+    std::vector<llvm::Value *> idxList(Dimension.size() + 1);
+    // TODO refactor
+    idxList[0] = llvm::ConstantInt::getIntegerValue(LW->getType(DataType::Int),
+                                                    llvm::APInt(32, 0));
+    auto Ret = test(Dimension, i);
+    for (size_t ii = 0, ee = Ret.size(); ii != ee; ii++) {
+      idxList[ii + 1] = llvm::ConstantInt::getIntegerValue(
+          LW->getType(DataType::Int), llvm::APInt(32, Ret[ii]));
+    }
+
+    auto Addr = LW->Builder->CreateInBoundsGEP(Type, Ptr, idxList, "arrayidx");
+    LW->Builder->CreateStore(InitList[i], Addr);
+  }
 }
 
 /* =============================== CodeGenVisitor =========================== */
@@ -284,7 +370,6 @@ auto CodeGenVisitor::Visit(ParmVarDecl *Node) -> void { panic("Unreachable"); }
 auto CodeGenVisitor::Visit(Expr *Node) -> void { Node->accept(this); }
 
 auto CodeGenVisitor::Visit(VariableExpr *Node) -> void {
-  // TODO Handle Array
   const auto &VarName = Node->getName();
   auto *Val = Current->Find(VarName);
   if (!Val) {
@@ -297,7 +382,6 @@ auto CodeGenVisitor::Visit(VariableExpr *Node) -> void {
 }
 
 auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
-  // TODO Check Args Type ???
   auto *Val = Current->Find(Node->Callee);
   auto *TheFunction = static_cast<llvm::Function *>(Val);
   if (!Val) {
@@ -328,41 +412,46 @@ auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
 }
 
 auto CodeGenVisitor::Visit(ArraySubscriptExpr *Node) -> void {
-  // const auto &VarName = Node->Base;
-  // auto *Val = Current->Find(VarName);
-  // if (!Val) {
-  //   panic("Unknown Variable " + VarName);
-  // }
-  // // TODO
-  // auto *Casted = static_cast<llvm::GlobalVariable *>(Val);
-  // if (!Casted) {
-  //   panic(VarName + " is not a variable stored in stack");
-  // }
-  // std::vector<llvm::Value *> IdxList(Node->Index.size() + 1);
-  // IdxList[0] = llvm::ConstantInt::getIntegerValue(LW->getType(DataType::Int),
-  //                                                 llvm::APInt(32, 0));
+  static llvm::Type *Type = nullptr;
+  if (!ArraySubscriptExpr::classof(Node->Base.get())) {
+    if (!VariableExpr::classof(Node->Base.get())) {
+      panic("just panic");
+    }
+    auto *Base = getValue(Node->Base.get());
+    if (llvm::isa<llvm::GlobalVariable>(Base)) {
+      auto GV = llvm::dyn_cast<llvm::GlobalVariable>(Base);
+      Type = GV->getValueType();
+    } else if (llvm::isa<llvm::AllocaInst>(Base)) {
+      auto *Alloca = llvm::dyn_cast<llvm::AllocaInst>(Base);
+      Type = Alloca->getAllocatedType();
+    }
+    auto *Selector = getValue(Node->Selector.get());
+    TheValue = LW->Builder->CreateInBoundsGEP(
+        Type, Base,
+        std::vector<llvm::Value *>{
+            llvm::ConstantInt::getIntegerValue(LW->getType(DataType::Int),
+                                               llvm::APInt(32, 0)),
+            Selector},
+        "arrayidx");
 
-  // for (size_t i = 0, end = Node->Index.size(); i != end; ++i) {
-  //   auto *Val = getValue(Node->Index[i].get());
-  //   IdxList[i + 1] = Val;
-  // }
-  // // llvm::outs() << Casted->getValueName() << "\n"
-  // //              << Casted->getValueID() << "\n\n\n\n";
-  // if (Casted->getValueType()->isArrayTy()) {
-  //   llvm::outs() << "Array\n\n\n";
-  // } else if (Casted->getValueType()->isPointerTy()) {
-  //   llvm::outs() << "Pointer\n\n\n";
-  // }
+    Type = Type->getArrayElementType();
 
-  // // TODO
-  // TheValue =
-  //     // LW->Builder->CreateInBoundsGEP(Val->getType(), Val, IdxList);
-  //     LW->Builder->CreateInBoundsGEP(Casted->getValueType(), Casted,
-  //     IdxList);
+    return;
+  }
+  auto *Base = getValue(Node->Base.get());
+  auto *Selector = getValue(Node->Selector.get());
+  TheValue = LW->Builder->CreateInBoundsGEP(
+      Type, Base,
+      std::vector<llvm::Value *>{
+          llvm::ConstantInt::getIntegerValue(LW->getType(DataType::Int),
+                                             llvm::APInt(32, 0)),
+          Selector},
+      "arrayidx");
 
-  // if (!Node->isLValue()) {
-  //   LW->load(TheValue);
-  // }
+  Type = Type->getArrayElementType();
+  if (!Node->isLValue()) {
+    TheValue = LW->Builder->CreateLoad(Type, TheValue);
+  }
 }
 
 auto CodeGenVisitor::Visit(UnaryExpr *Node) -> void {}
@@ -385,18 +474,15 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
     if (!Node->LHS->isLValue()) {
       panic("Assign to RValue is not allowed..");
     }
-    // The LHS is AllocaInst * , use getAllocatedType to get inner Type.
-    // LW->implicitConvert(
-    // TODO
-    // FIXME
-    //     RHS, llvm::dyn_cast<llvm::AllocaInst>(LHS)->getAllocatedType());
-    // LW->implicitConvert(RHS, LW->getPtrType(LHS));
 
-    RHS->dump();
-    LHS->dump();
+    auto *Ty = LW->getPtrType(LHS);
+    if (!Ty) {
+      Ty = getArrayValueType(
+          dynamic_cast<ArraySubscriptExpr *>(Node->LHS.get()));
+    }
+    LW->implicitConvert(RHS, Ty);
 
     LW->Builder->CreateStore(RHS, LHS);
-    llvm::outs() << "\n\n\n\n";
 
     // Value of assignment expression is RHS
     TheValue = RHS;
@@ -579,7 +665,9 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
   LW->Builder->SetInsertPoint(MergeBB);
 }
 
-auto CodeGenVisitor::Visit(WhileStmt *Node) -> void {}
+auto CodeGenVisitor::Visit(WhileStmt *Node) -> void {
+  // TODO
+}
 
 auto CodeGenVisitor::Visit(ReturnStmt *Node) -> void {
   if (!Node->TheExpr) {
@@ -594,9 +682,13 @@ auto CodeGenVisitor::Visit(ReturnStmt *Node) -> void {
   LW->Builder->CreateRet(RetExpr);
 }
 
-auto CodeGenVisitor::Visit(BreakStmt *Node) -> void {}
+auto CodeGenVisitor::Visit(BreakStmt *Node) -> void {
+  // TODO
+}
 
-auto CodeGenVisitor::Visit(ContinueStmt *Node) -> void {}
+auto CodeGenVisitor::Visit(ContinueStmt *Node) -> void {
+  // TODO
+}
 
 auto CodeGenVisitor::Visit(VarDeclStmt *Node) -> void {
   Visit(Node->TheVarDecl.get());

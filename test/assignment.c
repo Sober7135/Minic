@@ -10,5 +10,9 @@ int main() {
   y = test();
   x = 9;
   putchar(x + 48);
+  putchar(y + 48);
+  putchar(z);
+  putchar(f + 48);
+
   return 0;
 }

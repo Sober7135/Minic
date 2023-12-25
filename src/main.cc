@@ -13,7 +13,7 @@
 using namespace antlr4;
 
 // TODO frontend Support LogicalAnd ... Xor Mod....
-auto main(int argc, char *argv[]) -> int {
+auto main([[maybe_unused]]int argc, char *argv[]) -> int {
   // TODO  Parse Command Line Arguments
   std::ifstream Stream(argv[1]);
   ANTLRInputStream Input(Stream);

@@ -403,7 +403,11 @@ auto ASTBuilder::visitAssignExpr(MinicParser::AssignExprContext *ctx)
     -> std::any {
   visit(ctx->LHS);
   auto LHS = std::move(VisitedExpr);
-  LHS->setLValue(true);
+  if (VariableExpr::classof(LHS.get()) ||
+      ArraySubscriptExpr::classof(LHS.get())) {
+    // TODO
+    LHS->setIsLValue(true);
+  }
 
   visit(ctx->RHS);
   auto RHS = std::move(VisitedExpr);
@@ -430,13 +434,10 @@ auto ASTBuilder::visitArraySubscriptExpr(
     MinicParser::ArraySubscriptExprContext *ctx) -> std::any {
   visit(ctx->Base);
   std::unique_ptr<Expr> Base = std::move(VisitedExpr);
-  std::vector<std::unique_ptr<Expr>> IndexList(ctx->expr().size());
-  for (size_t i = 0, end = IndexList.size(); i != end; ++i) {
-    visit(ctx->expr(i));
-    IndexList[i] = std::move(VisitedExpr);
-  }
+  Base->setIsLValue(true);
+  visit(ctx->Selector);
   VisitedExpr = std::make_unique<ArraySubscriptExpr>(std::move(Base),
-                                                     std::move(IndexList));
+                                                     std::move(VisitedExpr));
   return nullptr;
 }
 

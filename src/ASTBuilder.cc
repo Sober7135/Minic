@@ -557,8 +557,8 @@ auto ASTBuilder::visitIdentifierExpr(MinicParser::IdentifierExprContext *ctx)
     // CallExpr
     // Get VisitedExpr
     visitCallExpr(ctx->callExpr());
-  } else if (ctx->postfixExpr()) {
-    visitPostfixExpr(ctx->postfixExpr());
+  } else if (ctx->arraySubscriptExpr()) {
+    visitArraySubscriptExpr(ctx->arraySubscriptExpr());
   } else {
     // VariableExpr
     VisitedExpr = std::make_unique<VariableExpr>(ctx->Identifier()->getText());
@@ -567,7 +567,7 @@ auto ASTBuilder::visitIdentifierExpr(MinicParser::IdentifierExprContext *ctx)
   return nullptr;
 }
 
-auto ASTBuilder::visitPostfixExpr(MinicParser::PostfixExprContext *ctx)
+auto ASTBuilder::visitArraySubscriptExpr(MinicParser::ArraySubscriptExprContext *ctx)
     -> std::any {
   auto Name = ctx->Identifier()->getText();
   std::vector<std::unique_ptr<Expr>> IndexList(ctx->expr().size());
@@ -575,7 +575,7 @@ auto ASTBuilder::visitPostfixExpr(MinicParser::PostfixExprContext *ctx)
     visitExpr(ctx->expr(i));
     IndexList[i] = std::move(VisitedExpr);
   }
-  VisitedExpr = std::make_unique<PostfixExpr>(Name, std::move(IndexList));
+  VisitedExpr = std::make_unique<ArraySubscriptExpr>(Name, std::move(IndexList));
   return nullptr;
 }
 

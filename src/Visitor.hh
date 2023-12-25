@@ -28,7 +28,7 @@ class FunctionDecl;
 class Expr;
 class VariableExpr;
 class CallExpr;
-class PostfixExpr;
+class ArraySubscriptExpr;
 class UnaryExpr;
 class BinaryExpr;
 class LiteralExpr;
@@ -61,7 +61,7 @@ public:
   virtual auto Visit(Expr *Node) -> void = 0;
   virtual auto Visit(VariableExpr *Node) -> void = 0;
   virtual auto Visit(CallExpr *Node) -> void = 0;
-  virtual auto Visit(PostfixExpr *Node) -> void = 0;
+  virtual auto Visit(ArraySubscriptExpr *Node) -> void = 0;
   virtual auto Visit(UnaryExpr *Node) -> void = 0;
   virtual auto Visit(BinaryExpr *Node) -> void = 0;
   virtual auto Visit(LiteralExpr *Node) -> void = 0;
@@ -103,7 +103,7 @@ public:
   auto Visit(Expr *Node) -> void override;
   auto Visit(VariableExpr *Node) -> void override;
   auto Visit(CallExpr *Node) -> void override;
-  auto Visit(PostfixExpr *Node) -> void override;
+  auto Visit(ArraySubscriptExpr *Node) -> void override;
   auto Visit(UnaryExpr *Node) -> void override;
   auto Visit(BinaryExpr *Node) -> void override;
   auto Visit(LiteralExpr *Node) -> void override;
@@ -165,7 +165,7 @@ public:
   auto Visit(Expr *Node) -> void override;
   auto Visit(VariableExpr *Node) -> void override;
   auto Visit(CallExpr *Node) -> void override;
-  auto Visit(PostfixExpr *Node) -> void override;
+  auto Visit(ArraySubscriptExpr *Node) -> void override;
   auto Visit(UnaryExpr *Node) -> void override;
   auto Visit(BinaryExpr *Node) -> void override;
   auto Visit(LiteralExpr *Node) -> void override;

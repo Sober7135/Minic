@@ -153,10 +153,10 @@ primary
 identifierExpr
     : Identifier
     | callExpr
-    | postfixExpr
+    | arraySubscriptExpr
     ;
 
-postfixExpr
+arraySubscriptExpr
     : Identifier (LeftSquareBrace expr RightSquareBrace)*
     ;
     

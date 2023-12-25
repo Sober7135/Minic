@@ -140,15 +140,16 @@ public:
   friend class CodeGenVisitor;
 };
 
-/// PostfixExpr
+/// ArraySubscriptExpr
 ///   ::= Identifier ('[' expr ']')*
-class PostfixExpr : public Expr {
+class ArraySubscriptExpr : public Expr {
 protected:
   std::string Name;
   std::vector<std::unique_ptr<Expr>> Index;
 
 public:
-  PostfixExpr(std::string Name, std::vector<std::unique_ptr<Expr>> &&Index)
+  ArraySubscriptExpr(std::string Name,
+                     std::vector<std::unique_ptr<Expr>> &&Index)
       : Name(std::move(Name)), Index(std::move(Index)) {}
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }
   explicit operator std::string() override;

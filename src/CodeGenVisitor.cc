@@ -327,7 +327,7 @@ auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
   TheValue = LW->Builder->CreateCall(TheFunction, ArgVs);
 }
 
-auto CodeGenVisitor::Visit(PostfixExpr *Node) -> void {
+auto CodeGenVisitor::Visit(ArraySubscriptExpr *Node) -> void {
   const auto &VarName = Node->getName();
   auto *Val = Current->Find(VarName);
   if (!Val) {

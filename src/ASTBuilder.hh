@@ -102,7 +102,7 @@ public:
 
   auto visitCallExpr(MinicParser::CallExprContext *ctx) -> std::any override;
 
-  auto visitPostfixExpr(MinicParser::PostfixExprContext *ctx)
+  auto visitArraySubscriptExpr(MinicParser::ArraySubscriptExprContext *ctx)
       -> std::any override;
 
   auto visitVarList(MinicParser::VarListContext *ctx) -> std::any override;

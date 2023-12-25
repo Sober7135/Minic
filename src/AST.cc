@@ -31,8 +31,8 @@ FunctionDecl::operator std::string() {
   return "FunctionDecl " + Name;
 }
 
-PostfixExpr::operator std::string() {
-  std::string Ret = "PostfixExpr";
+ArraySubscriptExpr::operator std::string() {
+  std::string Ret = "ArraySubscriptExpr";
   return Ret;
 }
 } // namespace Minic

@@ -66,7 +66,7 @@ auto ASTPrinter::Visit(CallExpr *Node) -> void {
   Out << StringWrapper(std::string(*Node), I);
 }
 
-auto ASTPrinter::Visit(PostfixExpr *Node) -> void {
+auto ASTPrinter::Visit(ArraySubscriptExpr *Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 }
 

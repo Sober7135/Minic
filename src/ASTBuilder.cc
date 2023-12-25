@@ -359,6 +359,10 @@ auto ASTBuilder::visitAssignment(MinicParser::AssignmentContext *ctx)
   visitEquality(TheEqualityCtx);
   std::unique_ptr<Expr> LHS = std::move(VisitedExpr);
 
+  if (i < size) {
+    LHS->setLValue(true);
+  }
+
   while (i < size) {
     // Get binary operator
     auto StringBinaryOperator =

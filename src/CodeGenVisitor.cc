@@ -239,12 +239,10 @@ auto CodeGenVisitor::Visit(VariableExpr *Node) -> void {
   if (!Val) {
     panic("Unknown Variable " + VarName);
   }
-  auto *Casted = static_cast<llvm::AllocaInst *>(Val);
-  if (!Casted) {
-    panic(VarName + " is not a variable stored in stack");
+  if (!Node->isLValue()) {
+    LW->load(Val);
   }
-
-  TheValue = Casted;
+  TheValue = Val;
 }
 
 auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
@@ -268,9 +266,6 @@ auto CodeGenVisitor::Visit(CallExpr *Node) -> void {
     auto *DestTy = (TheFunction->args().begin() + i)->getType();
     auto *Val = getValue(Args[i].get());
 
-    if (Args[i]->isLValue()) {
-      LW->load(Val);
-    }
     if (!Val) {
       panic("Failed to generate " + Node->Callee + "'s args");
     }
@@ -310,14 +305,6 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
     // Value of assignment expression is RHS
     TheValue = RHS;
     return;
-  }
-
-  // load
-  if (Node->LHS->isLValue()) {
-    LW->load(LHS);
-  }
-  if (Node->RHS->isLValue()) {
-    LW->load(RHS);
   }
 
   auto convert = [&](llvm::Value *&LHS, llvm::Value *&RHS) {
@@ -448,11 +435,6 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
   auto *CondV = getValue(Node->Cond.get());
   if (!CondV) {
     panic("Failed to generate if condition");
-  }
-
-  // Check LValue
-  if (Node->Cond->isLValue()) {
-    LW->load(CondV);
   }
 
   LW->convertToBool(CondV, "ifcond");

@@ -30,6 +30,7 @@ protected:
 
 public:
   [[nodiscard]] auto isLValue() const -> bool { return IsLValue; }
+  auto setLValue(bool isLValue) -> void { IsLValue = isLValue; }
 };
 
 class Declarator : public ASTNode {
@@ -112,9 +113,7 @@ class VariableExpr : public Expr {
   std::string Name;
 
 public:
-  explicit VariableExpr(std::string Name) : Name(std::move(Name)) {
-    IsLValue = true;
-  }
+  explicit VariableExpr(std::string Name) : Name(std::move(Name)) {}
 
   [[nodiscard]] auto getName() const -> const std::string & { return Name; }
   auto accept(ASTVisitor *V) -> void override { V->Visit(this); }

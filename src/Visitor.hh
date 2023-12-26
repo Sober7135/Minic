@@ -141,6 +141,7 @@ private:
   bool IsFunctionScope = false;
   llvm::BasicBlock *LoopCond = nullptr;
   llvm::BasicBlock *LoopEnd = nullptr;
+  bool Terminate = false;
 
   auto getValue(ASTNode *Node) -> llvm::Value *;
   void checkVariableRedefinition(const std::unique_ptr<Declarator> &D);

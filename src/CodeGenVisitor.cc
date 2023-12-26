@@ -34,6 +34,7 @@ namespace Minic {
 /* ================================== Private =============================== */
 auto CodeGenVisitor::getValue(ASTNode *Node) -> llvm::Value * {
   TheValue = nullptr;
+  Terminate = false;
   Visit(Node);
   return TheValue;
 }
@@ -262,7 +263,7 @@ auto CodeGenVisitor::init(llvm::Type *Type, llvm::Value *Ptr,
 /* =================================== Public =============================== */
 auto CodeGenVisitor::Visit(const Program &TheProgram) -> void {
   for (const auto &Decl : TheProgram) {
-    Visit(Decl.get());
+    getValue(Decl.get());
   }
 }
 
@@ -340,7 +341,7 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
     Current->Add(std::string(Arg.getName()), Alloca);
   }
 
-  Visit(Node->Body.get());
+  getValue(Node->Body.get());
 
   // check main
   if (F->getName() == "main") {
@@ -670,7 +671,7 @@ auto CodeGenVisitor::Visit(Statement *Node) -> void {
 }
 
 auto CodeGenVisitor::Visit(ExprStmt *Node) -> void {
-  Visit(Node->TheExpr.get());
+  getValue(Node->TheExpr.get());
 }
 
 auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
@@ -697,15 +698,23 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
   // Emit then value.
   LW->Builder->SetInsertPoint(ThenBB);
 
-  Visit(Node->IfBody.get());
-  LW->Builder->CreateBr(MergeBB);
+  getValue(Node->IfBody.get());
+  if (!Terminate) {
+    LW->Builder->CreateBr(MergeBB);
+  }
+  Terminate = false;
 
   // Emit else block.
   TheFunction->insert(TheFunction->end(), ElseBB);
   LW->Builder->SetInsertPoint(ElseBB);
 
-  Visit(Node->ElseBody.get());
-  LW->Builder->CreateBr(MergeBB);
+  if (Node->ElseBody) {
+    getValue(Node->ElseBody.get());
+  }
+  if (!Terminate) {
+    LW->Builder->CreateBr(MergeBB);
+  }
+  Terminate = false;
 
   // Emit merge block.
   TheFunction->insert(TheFunction->end(), MergeBB);
@@ -738,8 +747,10 @@ auto CodeGenVisitor::Visit(WhileStmt *Node) -> void {
   LW->Builder->CreateCondBr(CondV, BodyBB, EndBB);
 
   LW->Builder->SetInsertPoint(BodyBB);
-  Visit(Node->Body.get());
-  LW->Builder->CreateBr(CondBB);
+  getValue(Node->Body.get());
+  if (!Terminate) {
+    LW->Builder->CreateBr(CondBB);
+  }
 
   TheFunction->insert(TheFunction->end(), EndBB);
   LW->Builder->SetInsertPoint(EndBB);
@@ -751,6 +762,7 @@ auto CodeGenVisitor::Visit(WhileStmt *Node) -> void {
 auto CodeGenVisitor::Visit(ReturnStmt *Node) -> void {
   if (!Node->TheExpr) {
     LW->Builder->CreateRetVoid();
+    Terminate = true;
     return;
   }
 
@@ -759,6 +771,7 @@ auto CodeGenVisitor::Visit(ReturnStmt *Node) -> void {
     panic("Failed to generate return statement Expression");
   }
   LW->Builder->CreateRet(RetExpr);
+  Terminate = true;
 }
 
 auto CodeGenVisitor::Visit(BreakStmt *Node) -> void {
@@ -766,6 +779,7 @@ auto CodeGenVisitor::Visit(BreakStmt *Node) -> void {
     panic("breakstmt not in loop stmt");
   }
   LW->Builder->CreateBr(LoopEnd);
+  Terminate = true;
 }
 
 auto CodeGenVisitor::Visit(ContinueStmt *Node) -> void {
@@ -773,10 +787,11 @@ auto CodeGenVisitor::Visit(ContinueStmt *Node) -> void {
     panic("continestmt not in loop stmt");
   }
   LW->Builder->CreateBr(LoopCond);
+  Terminate = true;
 }
 
 auto CodeGenVisitor::Visit(VarDeclStmt *Node) -> void {
-  Visit(Node->TheVarDecl.get());
+  getValue(Node->TheVarDecl.get());
 }
 
 auto CodeGenVisitor::Visit(CompoundStmt *Node) -> void {
@@ -790,7 +805,10 @@ auto CodeGenVisitor::Visit(CompoundStmt *Node) -> void {
   }
 
   for (const auto &Stmt : Node->Statements) {
-    Visit(Stmt.get());
+    getValue(Stmt.get());
+    if (Terminate) {
+      break;
+    }
   }
 
   Current = Current->getParent();
@@ -805,7 +823,7 @@ auto CodeGenVisitor::Visit(Initializer *Node) -> void {
     return;
   }
   if (Node->isLeaf()) {
-    Visit(Node->TheExpr.get());
+    getValue(Node->TheExpr.get());
     return;
   }
   panic("failed: array not handled here");

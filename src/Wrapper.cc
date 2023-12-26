@@ -65,10 +65,17 @@ auto LLVMWrapper::implicitConvert(llvm::Value *&Val, llvm::Type *DestTy)
 
   // just Convert to LHS
   switch (flag) {
-  case 0b00:
+  case 0b00: {
     // both are int
-    Val = Builder->CreateIntCast(Val, DestTy, true, "inttoint");
+    auto CurrentW = Val->getType()->getIntegerBitWidth();
+    auto isSigned = true;
+    // bool -> int should be zext, aka isSigned = false
+    if (CurrentW == 1) {
+      isSigned = false;
+    }
+    Val = Builder->CreateIntCast(Val, DestTy, isSigned, "inttoint");
     break;
+  }
   case 0b01:
     // Val is float
     // DestTy is integer

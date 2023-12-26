@@ -7,6 +7,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/APInt.h>
 #include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constant.h>
@@ -452,7 +453,43 @@ auto CodeGenVisitor::Visit(ArraySubscriptExpr *Node) -> void {
   }
 }
 
-auto CodeGenVisitor::Visit(UnaryExpr *Node) -> void {}
+auto CodeGenVisitor::Visit(UnaryExpr *Node) -> void {
+  auto UnaryOp = Node->TheUnaryOperator;
+  auto *Expr = getValue(Node->TheExpr.get());
+  auto *Ty = Expr->getType();
+  if (!Expr) {
+    panic("Failed to generate Expr in unaryExpr");
+  }
+
+  switch (UnaryOp) {
+  case Minic::UnaryOperator::Plus:
+    // skip
+    break;
+  case Minic::UnaryOperator::Minus:
+    if (Ty->isFloatTy()) {
+      TheValue = LW->Builder->CreateFSub(
+          llvm::ConstantFP::get(Ty, llvm::APFloat(0.0)), Expr, "iunaryminus");
+    } else {
+      TheValue = LW->Builder->CreateSub(
+          llvm::ConstantInt::getIntegerValue(Ty, llvm::APInt(32, 0)), Expr,
+          "funaryminus");
+    }
+    break;
+  case Minic::UnaryOperator::BitwiseNot:
+    if (Ty->isFloatTy()) {
+      panic("float is not allowed in bitwisenot");
+    }
+    TheValue = LW->Builder->CreateNot(Expr, "bitwisenot");
+    break;
+  case Minic::UnaryOperator::LogicalNot:
+    LW->convertToBool(Expr);
+    TheValue = LW->Builder->CreateXor(
+        Expr, llvm::ConstantInt::getBool(*LW->Ctx, true), "logicalnot");
+    break;
+  default:
+    panic("Unsupported unary operator");
+  }
+}
 
 auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
   auto BinOp = Node->TheBinaryOperator;
@@ -533,7 +570,7 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
     break;
   case Minic::BinaryOperator::Precent:
     if (LHS->getType()->isFloatTy() || RHS->getType()->isFloatTy()) {
-      panic("float is not allow in mod");
+      panic("float is not allowed in mod");
     }
     TheValue = LW->Builder->CreateSRem(LHS, RHS, "reminder");
     break;
@@ -729,15 +766,11 @@ auto CodeGenVisitor::Visit(Initializer *Node) -> void {
   if (!Node) {
     return;
   }
-  // TODO Handle Array
   if (Node->isLeaf()) {
     Visit(Node->TheExpr.get());
-  } else {
-    // isArray
-    std::vector<llvm::Value *> ArrayV;
-    TheInitializerList = std::vector<llvm::Value *>{};
-    Visit(Node->TheExpr.get());
+    return;
   }
+  panic("failed: array not handled here");
 }
 
 } // namespace Minic

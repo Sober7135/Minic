@@ -228,7 +228,8 @@ auto CodeGenVisitor::getArrayValueType(ArraySubscriptExpr *Node)
   return Type;
 }
 
-auto test(const std::vector<int> &Dimension, size_t index) -> std::vector<int> {
+auto ComputeJumpOffset(const std::vector<int> &Dimension, size_t index)
+    -> std::vector<int> {
   std::vector<int> Ret(Dimension.size(), 0);
   for (int i = Dimension.size() - 1; i >= 0; i--) {
     Ret[i] = index % Dimension[i];
@@ -246,7 +247,7 @@ auto CodeGenVisitor::init(llvm::Type *Type, llvm::Value *Ptr,
     // TODO refactor
     idxList[0] = llvm::ConstantInt::getIntegerValue(LW->getType(DataType::Int),
                                                     llvm::APInt(32, 0));
-    auto Ret = test(Dimension, i);
+    auto Ret = ComputeJumpOffset(Dimension, i);
     for (size_t ii = 0, ee = Ret.size(); ii != ee; ii++) {
       idxList[ii + 1] = llvm::ConstantInt::getIntegerValue(
           LW->getType(DataType::Int), llvm::APInt(32, Ret[ii]));
@@ -713,7 +714,29 @@ auto CodeGenVisitor::Visit(IfStmt *Node) -> void {
 }
 
 auto CodeGenVisitor::Visit(WhileStmt *Node) -> void {
-  // TODO
+  auto *TheFunction = LW->Builder->GetInsertBlock()->getParent();
+  auto *CondBB = llvm::BasicBlock::Create(*LW->Ctx, "while.cond", TheFunction);
+  auto *BodyBB = llvm::BasicBlock::Create(*LW->Ctx, "while.body", TheFunction);
+  auto *EndBB = llvm::BasicBlock::Create(*LW->Ctx, "while.end", TheFunction);
+
+  LW->Builder->CreateBr(CondBB);
+  LW->Builder->SetInsertPoint(CondBB);
+  auto *CondV = getValue(Node->Cond.get());
+  if (!CondV) {
+    panic("Failed to generate while condition");
+  }
+
+  LW->convertToBool(CondV, "whilecond");
+  if (!CondV) {
+    panic("Failed to convert while condition to bool");
+  }
+
+  LW->Builder->CreateCondBr(CondV, BodyBB, EndBB);
+
+  LW->Builder->SetInsertPoint(BodyBB);
+  Visit(Node->Body.get());
+  LW->Builder->CreateBr(CondBB);
+  LW->Builder->SetInsertPoint(EndBB);
 }
 
 auto CodeGenVisitor::Visit(ReturnStmt *Node) -> void {

@@ -411,7 +411,9 @@ public:
   static auto classof(const ASTNode *Node) -> bool {
     return Node->getKind() == Kind::WhileStmtK;
   }
+
   friend class ASTPrinter;
+  friend class CodeGenVisitor;
 };
 
 /// Return Statement

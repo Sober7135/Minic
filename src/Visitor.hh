@@ -7,6 +7,7 @@
 #include "llvm/IR/Value.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <llvm/IR/BasicBlock.h>
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/DerivedTypes.h>
@@ -131,13 +132,15 @@ class CodeGenVisitor : public ASTVisitor {
 public:
   std::unique_ptr<LLVMWrapper> LW;
 
-  bool IsFunctionScope = false;
-
 private:
   std::unique_ptr<Scope> TheScope;
   Scope *Current;
   llvm::Value *TheValue = nullptr;
   std::vector<llvm::Value *> TheInitializerList;
+  bool IsInLoop = false;
+  bool IsFunctionScope = false;
+  llvm::BasicBlock *LoopCond = nullptr;
+  llvm::BasicBlock *LoopEnd = nullptr;
 
   auto getValue(ASTNode *Node) -> llvm::Value *;
   void checkVariableRedefinition(const std::unique_ptr<Declarator> &D);

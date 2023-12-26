@@ -13,13 +13,12 @@ void printInt(int x) {
 }
 
 int main() {
-  int i = 10;
-  while (i < 100) {
-    printInt(i);
+  int i = 0;
+  while (i != 10) {
     i = i + 1;
-    if (i == 50) {
-      break;
+    if (i == 2) {
+      continue;
     }
+    printInt(i);
   }
-  return 0;
 }

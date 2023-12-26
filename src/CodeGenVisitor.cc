@@ -717,7 +717,11 @@ auto CodeGenVisitor::Visit(WhileStmt *Node) -> void {
   auto *TheFunction = LW->Builder->GetInsertBlock()->getParent();
   auto *CondBB = llvm::BasicBlock::Create(*LW->Ctx, "while.cond", TheFunction);
   auto *BodyBB = llvm::BasicBlock::Create(*LW->Ctx, "while.body", TheFunction);
-  auto *EndBB = llvm::BasicBlock::Create(*LW->Ctx, "while.end", TheFunction);
+  auto *EndBB = llvm::BasicBlock::Create(*LW->Ctx, "while.end");
+
+  IsInLoop = true;
+  LoopCond = CondBB;
+  LoopEnd = EndBB;
 
   LW->Builder->CreateBr(CondBB);
   LW->Builder->SetInsertPoint(CondBB);
@@ -736,7 +740,12 @@ auto CodeGenVisitor::Visit(WhileStmt *Node) -> void {
   LW->Builder->SetInsertPoint(BodyBB);
   Visit(Node->Body.get());
   LW->Builder->CreateBr(CondBB);
+
+  TheFunction->insert(TheFunction->end(), EndBB);
   LW->Builder->SetInsertPoint(EndBB);
+
+  LoopCond = LoopEnd = nullptr;
+  IsInLoop = false;
 }
 
 auto CodeGenVisitor::Visit(ReturnStmt *Node) -> void {
@@ -753,11 +762,17 @@ auto CodeGenVisitor::Visit(ReturnStmt *Node) -> void {
 }
 
 auto CodeGenVisitor::Visit(BreakStmt *Node) -> void {
-  // TODO
+  if (!IsInLoop) {
+    panic("breakstmt not in loop stmt");
+  }
+  LW->Builder->CreateBr(LoopEnd);
 }
 
 auto CodeGenVisitor::Visit(ContinueStmt *Node) -> void {
-  // TODO
+  if (!IsInLoop) {
+    panic("continestmt not in loop stmt");
+  }
+  LW->Builder->CreateBr(LoopCond);
 }
 
 auto CodeGenVisitor::Visit(VarDeclStmt *Node) -> void {

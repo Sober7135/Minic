@@ -24,7 +24,6 @@
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/raw_ostream.h>
 #include <memory>
-#include <ranges>
 #include <string>
 #include <vector>
 
@@ -533,7 +532,10 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
     }
     break;
   case Minic::BinaryOperator::Precent:
-    unimplement();
+    if (LHS->getType()->isFloatTy() || RHS->getType()->isFloatTy()) {
+      panic("float is not allow in mod");
+    }
+    TheValue = LW->Builder->CreateSRem(LHS, RHS, "reminder");
     break;
   case Minic::BinaryOperator::LogicalAnd:
     LW->convertToBool(LHS);
@@ -588,13 +590,22 @@ auto CodeGenVisitor::Visit(BinaryExpr *Node) -> void {
     }
     break;
   case Minic::BinaryOperator::BitwiseAnd:
-    unimplement();
+    if (LHS->getType()->isFloatTy() || RHS->getType()->isFloatTy()) {
+      panic("float is not allowed in &");
+    }
+    TheValue = LW->Builder->CreateAnd(LHS, RHS, "bitwiseand");
     break;
   case Minic::BinaryOperator::BitwiseOr:
-    unimplement();
+    if (LHS->getType()->isFloatTy() || RHS->getType()->isFloatTy()) {
+      panic("float is not allowed in |");
+    }
+    TheValue = LW->Builder->CreateOr(LHS, RHS, "bitwiseor");
     break;
   case Minic::BinaryOperator::BitwiseXor:
-    unimplement();
+    if (LHS->getType()->isFloatTy() || RHS->getType()->isFloatTy()) {
+      panic("float is not allowed in ^");
+    }
+    TheValue = LW->Builder->CreateXor(LHS, RHS, "xor");
     break;
   }
 }

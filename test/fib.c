@@ -6,7 +6,7 @@ int printInt(int n) {
     return 0;
   }
   printInt(n / 10);
-  putchar((n % 10) ^ 0x30);
+  putchar((n % 10) ^ 48);
   return 0;
 }
 

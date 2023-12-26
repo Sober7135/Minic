@@ -9,7 +9,9 @@ inline void panic(const std::string &Msg) {
   exit(-1);
 }
 
-inline void unimplement() { panic("unimplement!"); }
+inline void unimplement(const std::string &Str = "") {
+  panic(Str + " " + "unimplement!");
+}
 
 inline void warning(const std::string &Str) {
   llvm::errs() << "Warning: " << Str << '\n';

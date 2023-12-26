@@ -7,7 +7,6 @@
 
 #include <any>
 #include <cassert>
-#include <cstddef>
 #include <memory>
 #include <string>
 #include <utility>

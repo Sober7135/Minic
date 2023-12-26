@@ -316,9 +316,10 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
     // 1.
   }
 
+  Current->Add(Node->Name, F);
+
   if (Node->isPrototype()) {
     TheValue = F;
-    Current->Add(Node->Name, F);
     return;
   }
 
@@ -359,8 +360,6 @@ auto CodeGenVisitor::Visit(FunctionDecl *Node) -> void {
   // Finish off the function
   llvm::verifyFunction(*F);
   TheValue = F;
-
-  Current->Add(Node->Name, F);
 
   return;
 }

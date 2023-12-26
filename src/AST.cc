@@ -1,4 +1,5 @@
 #include "AST.hh"
+#include "Type.hh"
 #include <string>
 
 namespace Minic {
@@ -25,10 +26,24 @@ Initializer::operator std::string() {
 
 FunctionDecl::operator std::string() {
   auto IsPrototype_ = isPrototype();
+  std::string Ret = "";
   if (IsPrototype_) {
-    return "FunctionPrototype " + Name;
+    Ret = "FunctionPrototype\n";
+  } else {
+    Ret = "FunctionDecl\n";
   }
-  return "FunctionDecl " + Name;
+  Ret += "  ReturnType: " + DataType2String[Type] + "\n";
+  Ret += "  Name: " + Name + "\n";
+  Ret += "  VarList: ";
+  if (VarList.empty()) {
+    Ret += "void\n";
+  } else {
+    for (const auto &i : VarList) {
+      Ret += DataType2String[i->getType()] + " ";
+    }
+    Ret += '\n';
+  }
+  return Ret;
 }
 
 ArraySubscriptExpr::operator std::string() {

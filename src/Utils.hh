@@ -1,4 +1,5 @@
 #include <llvm/Support/raw_ostream.h>
+
 #include <string>
 #include <utility>
 
@@ -9,12 +10,13 @@ protected:
   unsigned Indent;
 
 public:
-  explicit StringWrapper(std::string Str, unsigned I = 0)
-      : Inner(std::move(Str)), Indent(I) {}
+  explicit StringWrapper(std::string Str, unsigned I = 0) :
+      Inner(std::move(Str)),
+      Indent(I) {}
 
-  friend auto operator<<(llvm::raw_ostream &Out,
-                         const StringWrapper &StringWrapper)
-      -> llvm::raw_ostream && {
+  friend auto
+  operator<<(llvm::raw_ostream& Out, const StringWrapper& StringWrapper)
+      -> llvm::raw_ostream&& {
     auto Str = StringWrapper.Inner;
     auto Indent = StringWrapper.Indent;
 
@@ -32,4 +34,4 @@ public:
   }
 };
 
-} // namespace Minic
+}  // namespace Minic

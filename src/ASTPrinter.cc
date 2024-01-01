@@ -1,10 +1,10 @@
-#include "Visitor.hh"
-
-#include "AST.hh"
-#include "Utils.hh"
 #include <cassert>
 #include <cstddef>
 #include <string>
+
+#include "AST.hh"
+#include "Utils.hh"
+#include "Visitor.hh"
 
 namespace Minic {
 
@@ -13,18 +13,22 @@ namespace Minic {
 // auto ASTVisitor::Visit(Declaration *Node) -> void { Node->accept(this); }
 
 /* =============================== ASTPrinter =============================== */
-auto ASTPrinter::Visit(const Program &TheProgram) -> void {
+auto ASTPrinter::Visit(const Program& TheProgram) -> void {
   Out << "AST:\n";
-  for (const auto &TheDeclaration : TheProgram) {
+  for (const auto& TheDeclaration : TheProgram) {
     Visit(TheDeclaration.get());
   }
 }
 
-auto ASTPrinter::Visit(ASTNode *Node) -> void { Node->accept(this); }
+auto ASTPrinter::Visit(ASTNode* Node) -> void {
+  Node->accept(this);
+}
 
-auto ASTPrinter::Visit(Declaration *Node) -> void { Node->accept(this); }
+auto ASTPrinter::Visit(Declaration* Node) -> void {
+  Node->accept(this);
+}
 
-auto ASTPrinter::Visit(VarDecl *Node) -> void {
+auto ASTPrinter::Visit(VarDecl* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
   I += 2;
@@ -40,7 +44,7 @@ auto ASTPrinter::Visit(VarDecl *Node) -> void {
   I -= 2;
 }
 
-auto ASTPrinter::Visit(FunctionDecl *Node) -> void {
+auto ASTPrinter::Visit(FunctionDecl* Node) -> void {
   // Top Level
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
@@ -52,49 +56,55 @@ auto ASTPrinter::Visit(FunctionDecl *Node) -> void {
   }
 }
 
-auto ASTPrinter::Visit(ParmVarDecl *Node) -> void {
+auto ASTPrinter::Visit(ParmVarDecl* Node) -> void {
   Out << StringWrapper(std::string(*Node)) << '\n';
 }
 
-auto ASTPrinter::Visit(Expr *Node) -> void { Node->accept(this); }
+auto ASTPrinter::Visit(Expr* Node) -> void {
+  Node->accept(this);
+}
 
-auto ASTPrinter::Visit(VariableExpr *Node) -> void {
+auto ASTPrinter::Visit(VariableExpr* Node) -> void {
   Out << StringWrapper(std::string(*Node), I);
 }
 
-auto ASTPrinter::Visit(CallExpr *Node) -> void {
+auto ASTPrinter::Visit(CallExpr* Node) -> void {
   Out << StringWrapper(std::string(*Node), I);
 }
 
-auto ASTPrinter::Visit(ArraySubscriptExpr *Node) -> void {
+auto ASTPrinter::Visit(ArraySubscriptExpr* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 }
 
-auto ASTPrinter::Visit(UnaryExpr *Node) -> void {
+auto ASTPrinter::Visit(UnaryExpr* Node) -> void {
   Out << StringWrapper(std::string(*Node));
 }
 
-auto ASTPrinter::Visit(BinaryExpr *Node) -> void {
+auto ASTPrinter::Visit(BinaryExpr* Node) -> void {
   Out << StringWrapper(std::string(*Node));
 }
 
-auto ASTPrinter::Visit(LiteralExpr *Node) -> void { Node->accept(this); }
+auto ASTPrinter::Visit(LiteralExpr* Node) -> void {
+  Node->accept(this);
+}
 
-auto ASTPrinter::Visit(LiteralIntegerExpr *Node) -> void {
+auto ASTPrinter::Visit(LiteralIntegerExpr* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 }
 
-auto ASTPrinter::Visit(LiteralFloatExpr *Node) -> void {
+auto ASTPrinter::Visit(LiteralFloatExpr* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 }
 
-auto ASTPrinter::Visit(LiteralCharExpr *Node) -> void {
+auto ASTPrinter::Visit(LiteralCharExpr* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 }
 
-auto ASTPrinter::Visit(Statement *Node) -> void { Node->accept(this); }
+auto ASTPrinter::Visit(Statement* Node) -> void {
+  Node->accept(this);
+}
 
-auto ASTPrinter::Visit(ExprStmt *Node) -> void {
+auto ASTPrinter::Visit(ExprStmt* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
   I += 2;
@@ -102,7 +112,7 @@ auto ASTPrinter::Visit(ExprStmt *Node) -> void {
   I -= 2;
 }
 
-auto ASTPrinter::Visit(IfStmt *Node) -> void {
+auto ASTPrinter::Visit(IfStmt* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
   I += 2;
@@ -113,7 +123,7 @@ auto ASTPrinter::Visit(IfStmt *Node) -> void {
   I -= 2;
 }
 
-auto ASTPrinter::Visit(WhileStmt *Node) -> void {
+auto ASTPrinter::Visit(WhileStmt* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
   I += 2;
@@ -121,19 +131,19 @@ auto ASTPrinter::Visit(WhileStmt *Node) -> void {
   I -= 2;
 }
 
-auto ASTPrinter::Visit(ReturnStmt *Node) -> void {
+auto ASTPrinter::Visit(ReturnStmt* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 }
 
-auto ASTPrinter::Visit(BreakStmt *Node) -> void {
+auto ASTPrinter::Visit(BreakStmt* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 }
 
-auto ASTPrinter::Visit(ContinueStmt *Node) -> void {
+auto ASTPrinter::Visit(ContinueStmt* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 }
 
-auto ASTPrinter::Visit(VarDeclStmt *Node) -> void {
+auto ASTPrinter::Visit(VarDeclStmt* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
   I += 2;
@@ -141,26 +151,26 @@ auto ASTPrinter::Visit(VarDeclStmt *Node) -> void {
   I -= 2;
 }
 
-auto ASTPrinter::Visit(CompoundStmt *Node) -> void {
+auto ASTPrinter::Visit(CompoundStmt* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
   I += 2;
-  for (const auto &StmtPtr : Node->Statements) {
+  for (const auto& StmtPtr : Node->Statements) {
     // Statements
     Visit(StmtPtr.get());
   }
   I -= 2;
 }
 
-auto ASTPrinter::Visit(Declarator *Node) -> void {
+auto ASTPrinter::Visit(Declarator* Node) -> void {
   Out << StringWrapper(std::string(*Node), I);
 }
 
-auto ASTPrinter::Visit(Initializer *Node) -> void {
+auto ASTPrinter::Visit(Initializer* Node) -> void {
   if (!Node) {
     return;
   }
   Out << StringWrapper(std::string(*Node), I);
 }
 
-} // namespace Minic
+}  // namespace Minic

@@ -1,8 +1,5 @@
 #pragma once
 
-#include "Log.hh"
-#include "Visitor.hh"
-#include <cstdlib>
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/Support/CodeGen.h>
@@ -13,14 +10,19 @@
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/TargetParser/Host.h>
 
+#include <cstdlib>
+
+#include "Log.hh"
+#include "Visitor.hh"
+
 namespace Minic {
-static auto removeExtAndPrefix(const std::string &Str) -> std::string {
+static auto removeExtAndPrefix(const std::string& Str) -> std::string {
   auto i = Str.find_last_of('.');
   auto ii = Str.find_first_of('/');
   return Str.substr(ii + 1, i - ii - 1);
 }
 
-inline void genObjectFile(CodeGenVisitor &V) {
+inline void genObjectFile(CodeGenVisitor& V) {
   llvm::InitializeAllTargetInfos();
   llvm::InitializeAllTargets();
   llvm::InitializeAllTargetMCs();
@@ -28,7 +30,7 @@ inline void genObjectFile(CodeGenVisitor &V) {
   llvm::InitializeAllAsmPrinters();
 
   auto TargetTriple = llvm::sys::getDefaultTargetTriple();
-  auto &TheModule = V.LW->Mod;
+  auto& TheModule = V.LW->Mod;
   TheModule->setTargetTriple(TargetTriple);
 
   std::string Error;
@@ -46,7 +48,12 @@ inline void genObjectFile(CodeGenVisitor &V) {
 
   llvm::TargetOptions opt;
   auto TheTargetMachine = Target->createTargetMachine(
-      TargetTriple, CPU, Features, opt, llvm::Reloc::PIC_);
+      TargetTriple,
+      CPU,
+      Features,
+      opt,
+      llvm::Reloc::PIC_
+  );
 
   TheModule->setDataLayout(TheTargetMachine->createDataLayout());
 
@@ -74,4 +81,4 @@ inline void genObjectFile(CodeGenVisitor &V) {
 
   system(("clang " + Filename + " -o " + FileNameWithoutExt).c_str());
 }
-} // namespace Minic
+}  // namespace Minic

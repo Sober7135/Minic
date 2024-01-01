@@ -9,7 +9,7 @@ program
 	  ;
 
 declaration
-    : globalVarDeclStmt  // not support function declaration, something like  `int test(int);`
+    : globalVarDeclStmt
     | functionDecl
 	  ;
 
@@ -58,8 +58,8 @@ literal
 	  ;
     
 functionDecl
-    : dataType Identifier LeftParen parmVarList? RightParen compoundStmt? // not function declaration
-    | dataType Identifier LeftParen parmVarList? RightParen Semicolon     // not function declaration
+    : dataType Identifier LeftParen parmVarList? RightParen compoundStmt  // function definition
+    | dataType Identifier LeftParen parmVarList? RightParen Semicolon     // function declaration
     ;
 
 parmVarList
@@ -77,7 +77,6 @@ compoundStmt
 statement
     : ifStmt
     | whileStmt
-    // | forStmt
     | exprStmt
     | varDeclStmt
     | returnStmt
@@ -93,11 +92,6 @@ ifStmt
 whileStmt
     : While LeftParen expr RightParen statement
     ;
-
-// removing forStmt supporting, because if we support for, we must deal with left value and assignment expression
-// forStmt
-//     : For LeftParen expr Semicolon expr Semicolon expr RightParen statement
-//     ;
 
 exprStmt
     : expr Semicolon
@@ -135,63 +129,10 @@ expr
     | '(' expr ')'                                                      # ParenExpr
     ;
 
-// expr
-//     : assignment
-//     ;
-
-// assignment
-//     : equality (Assign equality)*
-//     ;
-
-// equality
-//     : comparison ((NotEqual | Equal) comparison)*
-//     ;
-    
-// comparison
-//     : term ((Less| LessEqual | Greater | GreaterEqual) term) *
-//     ;
-
-// term
-//     : factor ((Plus | Minus) factor) *
-//     ;
-
-// factor
-//     : unary (( Asterisk | Divide) unary)*
-//     ;
-
-// unary
-//     : (Plus | Minus) unary
-//     | primary
-//     ;
-
-// primary
-//     : identifierExpr
-//     | literal
-//     | parenExpr
-//     ;
-
-// identifierExpr
-//     : Identifier
-//     | callExpr
-//     | arraySubscriptExpr
-//     ;
-
-// arraySubscriptExpr
-//     : expr (LeftSquareBrace expr RightSquareBrace)*
-//     ;
-    
-// callExpr
-//     : Identifier LeftParen varList? RightParen
-//     ;
-
 varList
     : expr (Comma expr)*
     ;
     
-// parenExpr
-//     : LeftBrace expr RightBrace
-//     ;    
-
 // Token
 Int
     : 'int' 

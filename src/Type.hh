@@ -1,8 +1,6 @@
 #pragma once
 
-#include "TokenType.hh"
 #include <map>
-#include <stdexcept>
 #include <string>
 namespace Minic {
 enum class DataType {
@@ -43,19 +41,6 @@ enum class UnaryOperator {
   BitwiseNot,
   LogicalNot,
 };
-
-inline auto TokenType2DataType(TokenType token) -> DataType {
-  switch (token) {
-  case TokenType::Int:
-    return DataType::Int;
-  case TokenType::Float:
-    return DataType::Float;
-  case TokenType::Void:
-    return DataType::Void;
-  default:
-    throw std::invalid_argument("invalid token");
-  }
-}
 
 inline std::map<std::string, DataType> String2DataType{
     {"int", DataType::Int},

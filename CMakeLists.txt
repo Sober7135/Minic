@@ -8,7 +8,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
  
 # compiler must be 17
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -49,6 +49,8 @@ if(LINUX)
     set(USE_LLVM /opt/llvm/bin/llvm-config)
     set(LLVM_DIR /opt/llvm/lib/cmake/llvm)
     # set(LLVM_DIR /usr/lib/cmake/llvm)
+    message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+    message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
     message(STATUS "LLVM_LIBS = ${LLVM_LIBS}")
 else(APPLE)
     message(STATUS ">>> APPLE")
@@ -56,10 +58,7 @@ else(APPLE)
 endif()
 find_package(LLVM REQUIRED CONFIG)
 
-message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
-message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++2b -rdynamic -Wall -Wextra -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -Ofast -Wall -Wextra -Wno-unused-parameter")
 
 include_directories(${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})

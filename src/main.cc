@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <format>
 #include <fstream>
+#include <memory>
+#include <system_error>
 
 #include "ANTLRInputStream.h"
 #include "ASTBuilder.hh"
@@ -14,9 +16,9 @@
 
 using namespace antlr4;
 
-// TODO frontend Support LogicalAnd ... Xor Mod....
 auto main([[maybe_unused]] int argc, char* argv[]) -> int {
   // TODO  Parse Command Line Arguments
+  std::error_code EC;
   std::ifstream Stream(argv[1]);
   ANTLRInputStream Input(Stream);
   MinicLexer Lexer(&Input);
@@ -37,12 +39,17 @@ auto main([[maybe_unused]] int argc, char* argv[]) -> int {
   fflush(stdout);
   Minic::ASTBuilder TheASTBuilder(Program);
   TheASTBuilder.Build();
+
+  // AST
   auto& AST = TheASTBuilder.AST();
-  auto Printer = Minic::ASTPrinter(llvm::outs());
+  auto Printer = Minic::ASTPrinter(std::string(argv[1]) + ".ast", EC);
   Printer.Visit(AST);
   Minic::CodeGenVisitor CGV(argv[1]);
   CGV.Visit(AST);
-  llvm::outs() << "IR:\n";
-  CGV.LW->Mod->print(llvm::outs(), nullptr);
+
+  auto outToFile =
+      std::make_unique<llvm::raw_fd_ostream>(std::string(argv[1]) + ".ll", EC);
+  CGV.LW->Mod->print(*outToFile, nullptr);
+
   Minic::genObjectFile(CGV);
 }

@@ -9,6 +9,7 @@
 #include <llvm/IR/Type.h>
 
 #include <memory>
+#include <system_error>
 #include <vector>
 
 #include "Context.hh"
@@ -87,11 +88,12 @@ public:
 class ASTPrinter: public ASTVisitor {
 private:
   unsigned I {};  // Indent
-  llvm::raw_ostream& Out;
+  llvm::raw_fd_ostream Out;
   using Program = std::vector<std::unique_ptr<Declaration>>;
 
 public:
-  explicit ASTPrinter(llvm::raw_ostream& Out) : Out(Out) {};
+  explicit ASTPrinter(const std::string& filename, std::error_code& EC) :
+      Out(llvm::raw_fd_ostream(filename, EC)) {};
 
   auto Visit(const Program& TheProgram) -> void;
 

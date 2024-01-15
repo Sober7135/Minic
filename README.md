@@ -1,5 +1,7 @@
 
 ## What is supported?
+
+~~still have many bugs and many implementations are ungraceful~~
 - implicit conversion
 - variable shadowing
 - multiple dimensions array with initializer

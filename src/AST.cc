@@ -32,19 +32,11 @@ FunctionDecl::operator std::string() {
   if (IsPrototype_) {
     Ret = "FunctionPrototype\n";
   } else {
-    Ret = "FunctionDecl\n";
+    Ret = "FunctionDecl ";
   }
-  Ret += "  ReturnType: " + DataType2String[Type] + "\n";
-  Ret += "  Name: " + Name + "\n";
-  Ret += "  VarList: ";
-  if (VarList.empty()) {
-    Ret += "void\n";
-  } else {
-    for (const auto& i : VarList) {
-      Ret += DataType2String[i->getType()] + " ";
-    }
-    Ret += '\n';
-  }
+  Ret += "ReturnType: " + DataType2String[Type];
+  Ret += "  Name: " + Name;
+
   return Ret;
 }
 

@@ -26,17 +26,25 @@ auto main([[maybe_unused]] int argc, char* argv[]) -> int {
   Tokens.fill();
 
   for (auto& token : Tokens.getTokens()) {
+    // llvm::outs() << std::format(
+    //     "{} <{}>\n",
+    //     token->toString(),
+    //     Lexer.getVocabulary().getSymbolicName(token->getType())
+    // );
+
     llvm::outs() << std::format(
-        "{} <{}>\n",
-        token->toString(),
-        Lexer.getVocabulary().getSymbolicName(token->getType())
+        "[@{},'{}',<{}>,Ln{},Col{}]\n",
+        token->getTokenIndex(),
+        token->getText(),
+        Lexer.getVocabulary().getSymbolicName(token->getType()),
+        token->getLine(),
+        token->getCharPositionInLine()
     );
   }
 
   MinicParser Parser(&Tokens);
   auto* Program = Parser.program();
   // llvm::outs() << Program->toStringTree(&Parser, true);
-  fflush(stdout);
   Minic::ASTBuilder TheASTBuilder(Program);
   TheASTBuilder.Build();
 

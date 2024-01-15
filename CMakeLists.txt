@@ -40,7 +40,7 @@ set(ANTLR_EXECUTABLE ${CMAKE_SOURCE_DIR}/thirdparty/antlr/antlr-4.13.1-complete.
 find_package(ANTLR REQUIRED)
 
 # Call macro to add lexer and grammar to your build dependencies.
-antlr_target(MinicGrammar ${CMAKE_SOURCE_DIR}/src/Antlr4/Minic.g4 LEXER PARSER VISITOR)
+antlr_target(MinicGrammar ${CMAKE_SOURCE_DIR}/src/grammar/Minic.g4 LEXER PARSER VISITOR)
 # include generated files in project environment
 include_directories(${ANTLR_MinicGrammar_OUTPUT_DIR})
 

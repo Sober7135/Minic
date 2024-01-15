@@ -123,6 +123,8 @@ public:
 
 class Initializer: ASTNode {
   bool IsLeaf;
+
+protected:
   std::unique_ptr<Expr> TheExpr;  // nullptr if is not leaf node
   std::vector<std::unique_ptr<Initializer>> Children;
 
@@ -150,7 +152,9 @@ public:
   static auto classof(const ASTNode* Node) -> bool {
     return Node->getKind() == Kind::InitializerK;
   }
+
   friend class CodeGenVisitor;
+  friend class ASTPrinter;
 };
 
 /// Declaration
@@ -195,7 +199,7 @@ public:
   }
 
   explicit operator std::string() override {
-    return "VarDecl " + DataType2String[Type];
+    return DataType2String[Type];
   }
 
   [[nodiscard]] auto getType() const -> DataType {
@@ -682,7 +686,7 @@ public:
   }
 
   explicit operator std::string() override {
-    return "ParmVarDecl";
+    return DataType2String[Type];
   }
 
   static auto classof(const ASTNode* Node) -> bool {

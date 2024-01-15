@@ -1,9 +1,14 @@
 #include <llvm/Support/raw_ostream.h>
 
+#include <array>
 #include <string>
 #include <utility>
 
 namespace Minic {
+
+constexpr unsigned UINDENT = 4;
+std::array<std::string, 4> BOX_DRAWING {"─", "├", "└─", "│"};
+
 class StringWrapper {
 protected:
   std::string Inner;
@@ -32,6 +37,13 @@ public:
     Out.indent(Indent) << Str.substr(start);
     return std::move(Out);
   }
+
+  // void printIndent(llvm::raw_ostream& Out, unsigned Indent) {
+  //   auto flag = Indent % 4;
+  //   while (Indent != 0) {
+  //     Out << BOX_DRAWING[3] << "   ";
+  //   }
+  // }
 };
 
 }  // namespace Minic

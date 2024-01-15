@@ -1,5 +1,8 @@
+#include <llvm/Support/raw_ostream.h>
+
 #include <cassert>
 #include <cstddef>
+#include <format>
 #include <string>
 
 #include "AST.hh"
@@ -14,10 +17,12 @@ namespace Minic {
 
 /* =============================== ASTPrinter =============================== */
 auto ASTPrinter::Visit(const Program& TheProgram) -> void {
-  Out << "AST:\n";
+  Out << "Program\n";
+  I += UINDENT;
   for (const auto& TheDeclaration : TheProgram) {
     Visit(TheDeclaration.get());
   }
+  I -= UINDENT;
 }
 
 auto ASTPrinter::Visit(ASTNode* Node) -> void {
@@ -31,33 +36,52 @@ auto ASTPrinter::Visit(Declaration* Node) -> void {
 auto ASTPrinter::Visit(VarDecl* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
-  I += 2;
+  I += UINDENT;
   assert(Node->TheDeclaratorList.size() == Node->TheInitializerList.size());
   for (size_t i = 0; i < Node->TheDeclaratorList.size(); ++i) {
     Visit(Node->TheDeclaratorList[i].get());
     Out << "\n";
-    I += 2;
+    I += UINDENT;
     Visit(Node->TheInitializerList[i].get());
-    Out << "\n";
-    I -= 2;
+    I -= UINDENT;
   }
-  I -= 2;
+  I -= UINDENT;
 }
 
 auto ASTPrinter::Visit(FunctionDecl* Node) -> void {
   // Top Level
   Out << StringWrapper(std::string(*Node), I) << '\n';
+  I += UINDENT;
+  Out << StringWrapper(std::string("ParmVarDecl"), I) << '\n';
+
+  I += UINDENT;
+  if (Node->VarList.size()) {
+    for (size_t i = 0, end = Node->VarList.size(); i != end; ++i) {
+      Out << StringWrapper(
+          std::format(
+              "{}: {}",
+              std::to_string(i),
+              std::string(*Node->VarList[i])
+          ),
+          I
+      ) << '\n';
+    }
+  } else {
+    Out << StringWrapper(std::format("0: void"), I) << '\n';
+  }
+
+  I -= 2 * UINDENT;
 
   if (!Node->isPrototype()) {
-    I += 2;
+    I += UINDENT;
     // CompoundStmt
     Visit(Node->Body.get());
-    I -= 2;
+    I -= UINDENT;
   }
 }
 
 auto ASTPrinter::Visit(ParmVarDecl* Node) -> void {
-  Out << StringWrapper(std::string(*Node)) << '\n';
+  Out << StringWrapper(std::string(*Node), I) << '\n';
 }
 
 auto ASTPrinter::Visit(Expr* Node) -> void {
@@ -69,7 +93,7 @@ auto ASTPrinter::Visit(VariableExpr* Node) -> void {
 }
 
 auto ASTPrinter::Visit(CallExpr* Node) -> void {
-  Out << StringWrapper(std::string(*Node), I);
+  Out << StringWrapper(std::string(*Node), I) << '\n';
 }
 
 auto ASTPrinter::Visit(ArraySubscriptExpr* Node) -> void {
@@ -81,7 +105,7 @@ auto ASTPrinter::Visit(UnaryExpr* Node) -> void {
 }
 
 auto ASTPrinter::Visit(BinaryExpr* Node) -> void {
-  Out << StringWrapper(std::string(*Node));
+  Out << StringWrapper(std::string(*Node), I);
 }
 
 auto ASTPrinter::Visit(LiteralExpr* Node) -> void {
@@ -107,28 +131,28 @@ auto ASTPrinter::Visit(Statement* Node) -> void {
 auto ASTPrinter::Visit(ExprStmt* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
-  I += 2;
+  I += UINDENT;
   Visit(Node->TheExpr.get());
-  I -= 2;
+  I -= UINDENT;
 }
 
 auto ASTPrinter::Visit(IfStmt* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
-  I += 2;
+  I += UINDENT;
   Visit(Node->IfBody.get());
   if (Node->ElseBody) {
     Visit(Node->ElseBody.get());
   }
-  I -= 2;
+  I -= UINDENT;
 }
 
 auto ASTPrinter::Visit(WhileStmt* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
-  I += 2;
+  I += UINDENT;
   Visit(Node->Body.get());
-  I -= 2;
+  I -= UINDENT;
 }
 
 auto ASTPrinter::Visit(ReturnStmt* Node) -> void {
@@ -146,20 +170,20 @@ auto ASTPrinter::Visit(ContinueStmt* Node) -> void {
 auto ASTPrinter::Visit(VarDeclStmt* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
-  I += 2;
+  I += UINDENT;
   Visit(Node->TheVarDecl.get());
-  I -= 2;
+  I -= UINDENT;
 }
 
 auto ASTPrinter::Visit(CompoundStmt* Node) -> void {
   Out << StringWrapper(std::string(*Node), I) << '\n';
 
-  I += 2;
+  I += UINDENT;
   for (const auto& StmtPtr : Node->Statements) {
     // Statements
     Visit(StmtPtr.get());
   }
-  I -= 2;
+  I -= UINDENT;
 }
 
 auto ASTPrinter::Visit(Declarator* Node) -> void {
@@ -170,7 +194,19 @@ auto ASTPrinter::Visit(Initializer* Node) -> void {
   if (!Node) {
     return;
   }
-  Out << StringWrapper(std::string(*Node), I);
+  // Out << StringWrapper(std::string(*Node), I) << '\n';
+  if (Node->isLeaf()) {
+    Visit(Node->TheExpr.get());
+    return;
+  }
+
+  Out << StringWrapper(std::string("Initializer"), I) << '\n';
+
+  I += UINDENT;
+  for (const auto& c : Node->Children) {
+    Visit(c.get());
+  }
+  I -= UINDENT;
 }
 
 }  // namespace Minic

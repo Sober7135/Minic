@@ -19,6 +19,8 @@ using namespace antlr4;
 auto main([[maybe_unused]] int argc, char* argv[]) -> int {
   // TODO  Parse Command Line Arguments
   std::error_code EC;
+
+  // Lexer
   std::ifstream Stream(argv[1]);
   ANTLRInputStream Input(Stream);
   MinicLexer Lexer(&Input);
@@ -26,12 +28,6 @@ auto main([[maybe_unused]] int argc, char* argv[]) -> int {
   Tokens.fill();
 
   for (auto& token : Tokens.getTokens()) {
-    // llvm::outs() << std::format(
-    //     "{} <{}>\n",
-    //     token->toString(),
-    //     Lexer.getVocabulary().getSymbolicName(token->getType())
-    // );
-
     llvm::outs() << std::format(
         "[@{},'{}',<{}>,Ln{},Col{}]\n",
         token->getTokenIndex(),
@@ -42,9 +38,12 @@ auto main([[maybe_unused]] int argc, char* argv[]) -> int {
     );
   }
 
+  // Parser
   MinicParser Parser(&Tokens);
   auto* Program = Parser.program();
   // llvm::outs() << Program->toStringTree(&Parser, true);
+
+  // AST Builder
   Minic::ASTBuilder TheASTBuilder(Program);
   TheASTBuilder.Build();
 

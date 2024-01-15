@@ -12,7 +12,15 @@ You can check the `test` dir to see what has been supported...
 ## Dependency
 - I use `std::format`, so `c++2a`
 - `LLVM` 17.0.6
-- `Antlr4` Version 4.13.1
+- `git`
+
+
+## How to compile
+1. install dependencies above, including LLVM(17.0.6 is better), clang(I use clang to link the *.o file to dynamic library and also use it to test my code), cmake, ninja(optional), git(git clone the antlr cpp runtime), python3
+
+2. modify the CMakeLists.txt, I hard code the configuration, so maybe you should change it to make it fit on your machine.
+
+3. compile
 
 ## Grammar
 ```Antlr4
@@ -322,3 +330,4 @@ LineComment
     : '//' ~[\r\n]* -> skip
     ;
 ```
+

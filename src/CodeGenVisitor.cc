@@ -402,7 +402,7 @@ auto CodeGenVisitor::Visit(FunctionDecl* Node) -> void {
   return;
 }
 
-auto CodeGenVisitor::Visit(ParmVarDecl* Node) -> void {
+auto CodeGenVisitor::Visit([[maybe_unused]] ParmVarDecl* Node) -> void {
   panic("Unreachable");
 }
 
@@ -834,7 +834,7 @@ auto CodeGenVisitor::Visit(ReturnStmt* Node) -> void {
   Terminate = true;
 }
 
-auto CodeGenVisitor::Visit(BreakStmt* Node) -> void {
+auto CodeGenVisitor::Visit([[maybe_unused]] BreakStmt* Node) -> void {
   if (!IsInLoop) {
     panic("breakstmt not in loop stmt");
   }
@@ -842,7 +842,7 @@ auto CodeGenVisitor::Visit(BreakStmt* Node) -> void {
   Terminate = true;
 }
 
-auto CodeGenVisitor::Visit(ContinueStmt* Node) -> void {
+auto CodeGenVisitor::Visit([[maybe_unused]] ContinueStmt* Node) -> void {
   if (!IsInLoop) {
     panic("continestmt not in loop stmt");
   }
